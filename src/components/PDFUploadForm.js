@@ -3,8 +3,6 @@ import { webhookConfig } from '../config/webhook.config';
 import './PDFUploadForm.css';
 
 const PDFUploadForm = () => {
-  const [webhookUrl, setWebhookUrl] = useState(webhookConfig.defaultUrl || '');
-  const [apiKey, setApiKey] = useState(webhookConfig.defaultApiKey || '');
   const [uploadedFiles, setUploadedFiles] = useState({
     pdf1: null,
     pdf2: null
@@ -12,8 +10,7 @@ const PDFUploadForm = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
-  const [debugMode, setDebugMode] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
+  const [webhookResponse, setWebhookResponse] = useState(null);
   
   const fileInputRefs = {
     pdf1: useRef(null),
@@ -108,15 +105,12 @@ const PDFUploadForm = () => {
   };
 
   // Show error
-  const showError = (message, debugData = null) => {
+  const showError = (message) => {
     setResult({
       type: 'error',
       title: 'Upload Failed',
       message: message
     });
-    if (debugData) {
-      setDebugInfo(debugData);
-    }
   };
 
   // Show success
@@ -126,6 +120,7 @@ const PDFUploadForm = () => {
       title: title,
       message: data.message || 'Your PDF documents have been successfully uploaded to the webhook.'
     });
+    setWebhookResponse(data);
   };
 
   // Handle form submission
@@ -133,15 +128,15 @@ const PDFUploadForm = () => {
     e.preventDefault();
     console.log('[STEP 5] Form submission started');
     
-    if (!webhookUrl.trim()) {
-      console.error('[ERROR] Webhook URL is empty');
-      showError('Please enter a valid webhook URL.');
+    if (!webhookConfig.defaultUrl) {
+      console.error('[ERROR] Webhook URL not configured');
+      showError('Webhook URL not configured. Please check your environment variables.');
       return;
     }
     
-    if (!apiKey.trim()) {
-      console.error('[ERROR] API key is empty');
-      showError('Please enter a valid API key.');
+    if (!webhookConfig.defaultApiKey) {
+      console.error('[ERROR] API key not configured');
+      showError('API key not configured. Please check your environment variables.');
       return;
     }
     
@@ -156,8 +151,8 @@ const PDFUploadForm = () => {
     
     console.log('[STEP 6] Form validation passed, starting upload process');
     console.log('[STEP 6] Upload details:', {
-      webhookUrl: webhookUrl,
-      apiKeyLength: apiKey.length,
+      webhookUrl: webhookConfig.defaultUrl,
+      apiKeyLength: webhookConfig.defaultApiKey?.length || 0,
       pdf1Name: uploadedFiles.pdf1.name,
       pdf2Name: uploadedFiles.pdf2.name
     });
@@ -167,15 +162,11 @@ const PDFUploadForm = () => {
     setResult(null);
     
     try {
-      await uploadFiles(webhookUrl);
+      await uploadFiles(webhookConfig.defaultUrl);
     } catch (error) {
       console.error('[ERROR] Upload error:', error);
       
-      if (error.debugData) {
-        showError(`Upload failed: ${error.error.message}`, error.debugData);
-      } else {
-        showError(`Upload failed: ${error.message}`);
-      }
+      showError(`Upload failed: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -205,45 +196,13 @@ const PDFUploadForm = () => {
       totalFiles: '2'
     });
     
-    // Debug: Log request details
-    const debugData = {
-      webhookUrl: webhookUrl,
-      apiKey: apiKey.substring(0, 10) + '...',
+    console.log('Upload request details:', {
+      webhookUrl: webhookConfig.defaultUrl,
       files: {
-        pdf1: {
-          name: uploadedFiles.pdf1.name,
-          size: uploadedFiles.pdf1.size,
-          type: uploadedFiles.pdf1.type
-        },
-        pdf2: {
-          name: uploadedFiles.pdf2.name,
-          size: uploadedFiles.pdf2.size,
-          type: uploadedFiles.pdf2.type
-        }
-      },
-      timestamp: new Date().toISOString(),
-      formDataEntries: []
-    };
-    
-    // Log FormData contents for debugging
-    for (let [key, value] of formData.entries()) {
-      if (value instanceof File) {
-        debugData.formDataEntries.push({
-          key: key,
-          type: 'File',
-          name: value.name,
-          size: value.size
-        });
-      } else {
-        debugData.formDataEntries.push({
-          key: key,
-          type: 'String',
-          value: value
-        });
+        pdf1: uploadedFiles.pdf1.name,
+        pdf2: uploadedFiles.pdf2.name
       }
-    }
-    
-    console.log('Debug: Request details:', debugData);
+    });
     
     // Simulate progress updates
     const progressInterval = setInterval(() => {
@@ -258,10 +217,10 @@ const PDFUploadForm = () => {
     try {
       console.log('[STEP 10] About to send HTTP request');
       console.log('[STEP 10] Request details:', {
-        url: webhookUrl,
+        url: webhookConfig.defaultUrl,
         method: 'POST',
         apiKeyHeader: 'x-make-apikey',
-        apiKeyLength: apiKey.length,
+        apiKeyLength: webhookConfig.defaultApiKey?.length || 0,
         formDataEntries: Array.from(formData.entries()).map(([key, value]) => ({
           key,
           type: value instanceof File ? 'File' : 'String',
@@ -269,10 +228,10 @@ const PDFUploadForm = () => {
         }))
       });
       
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(webhookConfig.defaultUrl, {
         method: 'POST',
         headers: {
-          'x-make-apikey': apiKey
+          'x-make-apikey': webhookConfig.defaultApiKey
         },
         body: formData
       });
@@ -290,10 +249,15 @@ const PDFUploadForm = () => {
       
       if (response.ok) {
         console.log('[STEP 12] Response is successful (status 200-299)');
-        const result = await response.json().catch(() => ({}));
-        console.log('[STEP 12] Success response body:', result);
+        const responseData = await response.json().catch(() => ({}));
+        console.log('[STEP 12] Success response body:', responseData);
         console.log('[STEP 13] Upload completed successfully!');
-        showSuccess('Files uploaded successfully!', result);
+        showSuccess('Files uploaded successfully!', {
+          ...responseData,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
         
         // Reset form after 3 seconds
         setTimeout(() => {
@@ -304,14 +268,6 @@ const PDFUploadForm = () => {
         console.log('[STEP 12] Response indicates error (status not 200-299)');
         const errorText = await response.text().catch(() => 'No error details available');
         console.log('[STEP 12] Error response body:', errorText);
-        
-        const errorData = {
-          ...debugData,
-          responseStatus: response.status,
-          responseStatusText: response.statusText,
-          responseHeaders: Object.fromEntries(response.headers.entries()),
-          responseBody: errorText
-        };
         
         console.log('[STEP 13] Upload failed with HTTP error:', {
           status: response.status,
@@ -324,26 +280,17 @@ const PDFUploadForm = () => {
     } catch (error) {
       clearInterval(progressInterval);
       console.error('[ERROR] Upload failed with exception:', error);
-      
-      const errorData = {
-        ...debugData,
-        errorMessage: error.message,
-        errorStack: error.stack
-      };
-      
-      console.log('[ERROR] Throwing error with debug data for UI display');
-      throw { error, debugData: errorData };
+      throw error;
     }
   };
 
   // Reset form
   const resetForm = () => {
     console.log('[RESET] Resetting form to default values');
-    setWebhookUrl(webhookConfig.defaultUrl || '');
-    setApiKey(webhookConfig.defaultApiKey || '');
     setUploadedFiles({ pdf1: null, pdf2: null });
     setProgress(0);
     setResult(null);
+    setWebhookResponse(null);
     
     // Reset file inputs
     Object.values(fileInputRefs).forEach(ref => {
@@ -355,54 +302,11 @@ const PDFUploadForm = () => {
   };
 
   // Check if form is ready to submit
-  const isFormReady = webhookUrl.trim() && apiKey.trim() && uploadedFiles.pdf1 && uploadedFiles.pdf2;
+  const isFormReady = webhookConfig.defaultUrl && webhookConfig.defaultApiKey && uploadedFiles.pdf1 && uploadedFiles.pdf2;
 
   return (
     <div className="pdf-upload-form">
-      {/* Debug Mode Toggle */}
-      <div className="debug-toggle">
-        <label className="debug-label">
-          <input 
-            type="checkbox" 
-            checked={debugMode} 
-            onChange={(e) => setDebugMode(e.target.checked)}
-          />
-          <span>Debug Mode</span>
-        </label>
-      </div>
       <form onSubmit={handleSubmit} className="upload-form">
-        <div className="form-group">
-          <label htmlFor="webhookUrl" className="form-label">
-            <i className="fas fa-link"></i>
-            Make.com Webhook URL
-          </label>
-          <input 
-            type="url" 
-            id="webhookUrl" 
-            value={webhookUrl}
-            onChange={(e) => setWebhookUrl(e.target.value)}
-            className="form-input"
-            placeholder="https://hook.us2.make.com/your-webhook-url"
-            required
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="apiKey" className="form-label">
-            <i className="fas fa-key"></i>
-            API Key
-          </label>
-          <input 
-            type="text" 
-            id="apiKey" 
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="form-input"
-            placeholder="Enter your API key"
-            required
-          />
-        </div>
-
         <div className="upload-section">
           <h2 className="section-title">Upload PDF Documents</h2>
           
@@ -501,17 +405,50 @@ const PDFUploadForm = () => {
           </div>
           <h3>{result.title}</h3>
           <p>{result.message}</p>
+        </div>
+      )}
+
+      {/* Webhook Response Display */}
+      {webhookResponse && (
+        <div className="webhook-response">
+          <h3 className="response-title">
+            <i className="fas fa-server"></i>
+            Webhook Response
+          </h3>
           
-          {/* Debug Information */}
-          {debugMode && debugInfo && result.type === 'error' && (
-            <div className="debug-info">
-              <h4>Debug Information:</h4>
-              <details>
-                <summary>Click to view debug details</summary>
-                <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
-              </details>
+          <div className="response-details">
+            <div className="response-section">
+              <h4>Status</h4>
+              <div className="status-info">
+                <span className={`status-badge ${webhookResponse.status >= 200 && webhookResponse.status < 300 ? 'success' : 'error'}`}>
+                  {webhookResponse.status} {webhookResponse.statusText}
+                </span>
+              </div>
             </div>
-          )}
+
+            {webhookResponse.headers && Object.keys(webhookResponse.headers).length > 0 && (
+              <div className="response-section">
+                <h4>Response Headers</h4>
+                <div className="headers-list">
+                  {Object.entries(webhookResponse.headers).map(([key, value]) => (
+                    <div key={key} className="header-item">
+                      <span className="header-key">{key}:</span>
+                      <span className="header-value">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {Object.keys(webhookResponse).filter(key => !['status', 'statusText', 'headers'].includes(key)).length > 0 && (
+              <div className="response-section">
+                <h4>Response Data</h4>
+                <div className="response-data">
+                  <pre>{JSON.stringify(webhookResponse, null, 2)}</pre>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
