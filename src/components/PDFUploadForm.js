@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
+import { webhookConfig } from '../config/webhook.config';
 import './PDFUploadForm.css';
 
 const PDFUploadForm = () => {
-  const [webhookUrl, setWebhookUrl] = useState('https://hook.us2.make.com/6n9rpd2bmug4j7mx73c8bzm979rm9osm');
-  const [apiKey, setApiKey] = useState('Kf7Z1u8vP9QmR3xA2tS4nY6bW5oL0eJ1gH9cD7pF4qM2rV8yX6zU5kN3aB1iC7');
+  const [webhookUrl, setWebhookUrl] = useState(webhookConfig.defaultUrl || '');
+  const [apiKey, setApiKey] = useState(webhookConfig.defaultApiKey || '');
   const [uploadedFiles, setUploadedFiles] = useState({
     pdf1: null,
     pdf2: null
@@ -338,8 +339,8 @@ const PDFUploadForm = () => {
   // Reset form
   const resetForm = () => {
     console.log('[RESET] Resetting form to default values');
-    setWebhookUrl('https://hook.us2.make.com/6n9rpd2bmug4j7mx73c8bzm979rm9osm');
-    setApiKey('Kf7Z1u8vP9QmR3xA2tS4nY6bW5oL0eJ1gH9cD7pF4qM2rV8yX6zU5kN3aB1iC7');
+    setWebhookUrl(webhookConfig.defaultUrl || '');
+    setApiKey(webhookConfig.defaultApiKey || '');
     setUploadedFiles({ pdf1: null, pdf2: null });
     setProgress(0);
     setResult(null);

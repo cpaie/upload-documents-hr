@@ -50,14 +50,21 @@ This guide will help you set up Firebase for your PDF upload React application.
    cp env.example .env
    ```
 
-2. Edit `.env` and replace with your actual Firebase values:
+2. Edit `.env` and replace with your actual values:
    ```
+   # Firebase Configuration (Optional - only if using Firebase)
    REACT_APP_FIREBASE_API_KEY=your-actual-api-key
    REACT_APP_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
    REACT_APP_FIREBASE_PROJECT_ID=your-project-id
    REACT_APP_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
    REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
    REACT_APP_FIREBASE_APP_ID=your-app-id
+   
+   # Webhook Configuration (REQUIRED for webhook uploads)
+   REACT_APP_WEBHOOK_URL=https://hook.us2.make.com/your-webhook-url
+   REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key
+   REACT_APP_WEBHOOK_TIMEOUT=30000
+   REACT_APP_WEBHOOK_MAX_RETRIES=3
    ```
 
 ### Option 2: Direct Configuration
@@ -150,8 +157,8 @@ The application is already configured to use environment variables. The configur
 If you're using the `.env` file approach, no additional code changes are needed - the configuration will automatically pick up the environment variables.
 
 ### Customizing Configuration
-You can also customize other settings in `src/config/firebase.config.js`:
 
+#### Firebase Configuration (`src/config/firebase.config.js`):
 ```javascript
 // Storage Configuration
 export const storageConfig = {
@@ -175,6 +182,20 @@ export const appConfig = {
   version: '1.0.0',                  // Change app version
   debug: process.env.NODE_ENV === 'development',
   defaultUploadMode: 'webhook'       // Change default upload mode
+};
+```
+
+#### Webhook Configuration (`src/config/webhook.config.js`):
+```javascript
+export const webhookConfig = {
+  defaultUrl: process.env.REACT_APP_WEBHOOK_URL,        // Must be set in .env
+  defaultApiKey: process.env.REACT_APP_WEBHOOK_API_KEY, // Must be set in .env
+  timeout: parseInt(process.env.REACT_APP_WEBHOOK_TIMEOUT) || 30000,
+  maxRetries: parseInt(process.env.REACT_APP_WEBHOOK_MAX_RETRIES) || 3,
+  headers: {
+    'Content-Type': 'multipart/form-data',
+    'x-make-apikey': process.env.REACT_APP_WEBHOOK_API_KEY
+  }
 };
 ```
 
