@@ -261,9 +261,9 @@ const PDFUploadForm = () => {
         
         // Reset form after 3 seconds
         setTimeout(() => {
-          console.log('[STEP 14] Auto-resetting form after 3 seconds');
+          console.log('[STEP 14] Auto-resetting form after 1 hour');
           resetForm();
-        }, 3000);
+        }, 3600000);
       } else {
         console.log('[STEP 12] Response indicates error (status not 200-299)');
         const errorText = await response.text().catch(() => 'No error details available');
