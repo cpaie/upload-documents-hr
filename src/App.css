@@ -1,0 +1,71 @@
+/* Header styles */
+.header {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: white;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.logo i {
+  font-size: 2.5rem;
+  color: #ffd700;
+}
+
+.logo h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  font-weight: 300;
+}
+
+/* Main content */
+.main-content {
+  background: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  backdrop-filter: blur(10px);
+  flex: 1;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  .main-content {
+    padding: 1.5rem;
+  }
+  
+  .logo h1 {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .logo h1 {
+    font-size: 1.8rem;
+  }
+  
+  .main-content {
+    padding: 1rem;
+  }
+} 
