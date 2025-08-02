@@ -1,6 +1,6 @@
 # PDF Upload React App
 
-A modern React application for uploading PDF documents to a Make.com webhook with a beautiful, responsive UI.
+A modern React application for uploading PDF documents with support for both Make.com webhooks and Firebase Storage. Features a beautiful, responsive UI with drag-and-drop functionality.
 
 ## Features
 
@@ -8,9 +8,12 @@ A modern React application for uploading PDF documents to a Make.com webhook wit
 - 📁 **Drag & Drop**: Intuitive file upload with drag and drop support
 - 🔒 **File Validation**: PDF-only uploads with size limits (10MB max)
 - 📊 **Progress Tracking**: Real-time upload progress with visual feedback
-- 🌐 **Webhook Integration**: Direct upload to Make.com webhooks
+- 🌐 **Dual Upload Modes**: 
+  - Make.com webhook integration
+  - Firebase Storage & Firestore integration
 - 📱 **Mobile Responsive**: Works perfectly on all device sizes
 - ⚡ **Fast Development**: Built with Create React App for optimal performance
+- 🔥 **Firebase Features**: File storage, metadata management, download links, upload history
 
 ## Quick Start
 
@@ -19,14 +22,20 @@ A modern React application for uploading PDF documents to a Make.com webhook wit
    npm install
    ```
 
-2. **Start the development server**:
+2. **Configure Firebase** (optional):
+   - Follow the [Firebase Setup Guide](FIREBASE_SETUP.md)
+   - Update `src/firebase.js` with your Firebase configuration
+
+3. **Start the development server**:
    ```bash
    npm start
    ```
 
-3. **Open your browser** and navigate to `http://localhost:3000`
+4. **Open your browser** and navigate to `http://localhost:3000`
 
-4. **Enter** your Make.com webhook URL and upload PDF documents
+5. **Choose upload mode**:
+   - **Webhook Upload**: Upload to Make.com webhooks
+   - **Firebase Upload**: Upload to Firebase Storage with metadata
 
 ## Project Structure
 
@@ -37,14 +46,19 @@ pdf-upload-react/
 │   └── manifest.json       # Web app manifest
 ├── src/
 │   ├── components/
-│   │   ├── PDFUploadForm.js    # Main upload component
-│   │   └── PDFUploadForm.css   # Component styles
-│   ├── App.js              # Main App component
-│   ├── App.css             # App styles
-│   ├── index.js            # React entry point
-│   └── index.css           # Global styles
-├── package.json            # Dependencies and scripts
-└── README.md              # This file
+│   │   ├── PDFUploadForm.js        # Webhook upload component
+│   │   ├── FirebaseUploadForm.js   # Firebase upload component
+│   │   └── PDFUploadForm.css       # Component styles
+│   ├── services/
+│   │   └── firebaseService.js      # Firebase service functions
+│   ├── firebase.js                 # Firebase configuration
+│   ├── App.js                      # Main App component
+│   ├── App.css                     # App styles
+│   ├── index.js                    # React entry point
+│   └── index.css                   # Global styles
+├── package.json                    # Dependencies and scripts
+├── README.md                       # This file
+└── FIREBASE_SETUP.md              # Firebase setup guide
 ```
 
 ## Available Scripts
@@ -54,39 +68,47 @@ pdf-upload-react/
 - `npm run build` - Builds the app for production
 - `npm run eject` - Ejects from Create React App (one-way operation)
 
-## Setup Instructions
+## Upload Modes
 
-### 1. Make.com Webhook Setup
+### 1. Webhook Upload (Original)
+Uploads files directly to Make.com webhooks with the original functionality.
 
+**Setup Instructions**:
 1. Log in to your Make.com account
-2. Create a new scenario
-3. Add a **Webhook** trigger module
-4. Copy the webhook URL provided
-5. Configure the webhook to handle file uploads
+2. Create a new scenario with a Webhook trigger
+3. Copy the webhook URL
+4. Use the webhook URL in the app
 
-### 2. Webhook Configuration
+### 2. Firebase Upload (New)
+Uploads files to Firebase Storage and stores metadata in Firestore.
 
-Your Make.com webhook should be configured to receive:
-- `pdf1`: First PDF file
-- `pdf2`: Second PDF file
-- `timestamp`: Upload timestamp
-- `totalFiles`: Number of files (always 2)
+**Features**:
+- ✅ File storage in Firebase Storage
+- ✅ Metadata storage in Firestore
+- ✅ Download links for uploaded files
+- ✅ Upload history with file management
+- ✅ File deletion capabilities
+- ✅ Real-time progress tracking
 
-### 3. CORS Configuration
-
-If you encounter CORS issues, ensure your Make.com webhook allows:
-- **Origin**: Your domain or `*` for testing
-- **Methods**: POST
-- **Headers**: Content-Type
+**Setup Instructions**:
+- See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed setup guide
 
 ## Usage
 
-### Basic Upload
+### Webhook Upload Mode
 
-1. **Enter Webhook URL**: Paste your Make.com webhook URL in the input field
-2. **Select Files**: Click on each upload area or drag and drop PDF files
-3. **Review**: Check file names and sizes are correct
-4. **Upload**: Click "Upload Documents" to send files to your webhook
+1. **Switch to Webhook Mode**: Use the toggle in the header
+2. **Enter Webhook URL**: Paste your Make.com webhook URL
+3. **Enter API Key**: Add your webhook API key
+4. **Select Files**: Click or drag and drop PDF files
+5. **Upload**: Click "Upload Documents" to send to webhook
+
+### Firebase Upload Mode
+
+1. **Switch to Firebase Mode**: Use the toggle in the header
+2. **Select Files**: Click or drag and drop PDF files
+3. **Upload**: Click "Upload to Firebase" to store files
+4. **View History**: See all uploaded files with download/delete options
 
 ### File Requirements
 
@@ -94,20 +116,27 @@ If you encounter CORS issues, ensure your Make.com webhook allows:
 - **Size**: Maximum 10MB per file
 - **Quantity**: Exactly 2 files required
 
-### Upload Process
+## Firebase Features
 
-1. **Validation**: Files are validated for type and size
-2. **Progress**: Real-time progress bar shows upload status
-3. **Completion**: Success/error message displayed
-4. **Reset**: Form automatically resets after successful upload
+### File Management
+- **Upload**: Files are stored in Firebase Storage with unique timestamps
+- **Download**: Direct download links for all uploaded files
+- **Delete**: Remove files from both Storage and Firestore
+- **History**: View all uploads with metadata
+
+### Data Storage
+- **Firebase Storage**: Actual PDF files
+- **Firestore**: File metadata (name, size, URL, timestamp)
+- **Real-time**: Automatic updates when files are added/removed
 
 ## React Features Used
 
-- **React Hooks**: useState, useRef for state management
+- **React Hooks**: useState, useRef, useEffect for state management
 - **Functional Components**: Modern React patterns
 - **Event Handling**: Form submission and file handling
 - **Conditional Rendering**: Dynamic UI based on state
 - **CSS Modules**: Scoped styling for components
+- **Firebase SDK**: Storage and Firestore integration
 
 ## Browser Compatibility
 
@@ -129,21 +158,10 @@ Modify the CSS files to customize:
 ### Functionality
 
 Edit the React components to customize:
-- `src/components/PDFUploadForm.js` - Main upload logic
+- `src/components/PDFUploadForm.js` - Webhook upload logic
+- `src/components/FirebaseUploadForm.js` - Firebase upload logic
+- `src/services/firebaseService.js` - Firebase service functions
 - `src/App.js` - App structure and layout
-
-### Webhook Data
-
-The application sends the following data to your webhook:
-
-```json
-{
-  "pdf1": "[File object]",
-  "pdf2": "[File object]",
-  "timestamp": "2024-01-01T12:00:00.000Z",
-  "totalFiles": "2"
-}
-```
 
 ## Development
 
@@ -151,15 +169,18 @@ The application sends the following data to your webhook:
 
 1. Clone the repository
 2. Install dependencies with `npm install`
-3. Start development server with `npm start`
-4. Open browser to `http://localhost:3000`
+3. Configure Firebase (optional) - see FIREBASE_SETUP.md
+4. Start development server with `npm start`
+5. Open browser to `http://localhost:3000`
 
 ### Testing
 
+- Test both upload modes
 - Test with various PDF file sizes
 - Test drag and drop functionality
 - Test mobile responsiveness
 - Test error scenarios
+- Test Firebase features (if configured)
 
 ### Building for Production
 
@@ -177,6 +198,7 @@ This creates a `build` folder with optimized production files.
 2. **File Too Large**: Reduce file size to under 10MB
 3. **Invalid File Type**: Ensure files are PDF format
 4. **Network Error**: Check internet connection and webhook URL
+5. **Firebase Errors**: Check Firebase configuration and security rules
 
 ### Debug Mode
 
@@ -184,6 +206,7 @@ Open browser developer tools (F12) to see:
 - Console logs for debugging
 - Network requests and responses
 - React component state
+- Firebase SDK logs
 
 ## Security Considerations
 
@@ -191,12 +214,14 @@ Open browser developer tools (F12) to see:
 - **Size Limits**: Prevents large file uploads
 - **HTTPS**: Use HTTPS in production for secure file transfer
 - **Webhook Security**: Secure your Make.com webhook URL
+- **Firebase Security**: Configure proper security rules for production
 
 ## Dependencies
 
 - **React**: 18.2.0 - UI library
 - **React DOM**: 18.2.0 - DOM rendering
 - **React Scripts**: 5.0.1 - Build tools
+- **Firebase**: Latest - Firebase SDK for Storage and Firestore
 - **Font Awesome**: 6.0.0 - Icons
 - **Inter Font**: Google Fonts - Typography
 
@@ -209,9 +234,10 @@ This project is open source and available under the MIT License.
 For issues or questions:
 1. Check the troubleshooting section
 2. Review browser console for errors
-3. Verify webhook configuration
+3. Verify webhook/Firebase configuration
 4. Test with different files
+5. Check [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for Firebase-specific issues
 
 ---
 
-**Note**: This React application is designed for uploading PDF files to Make.com webhooks. Ensure you have proper permissions and security measures in place for your specific use case. 
+**Note**: This React application supports both Make.com webhook uploads and Firebase Storage uploads. Choose the mode that best fits your needs. Ensure you have proper permissions and security measures in place for your specific use case. 
