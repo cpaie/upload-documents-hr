@@ -425,6 +425,7 @@ const PDFUploadForm = () => {
                       type="file" 
                       ref={fileInputRefs[`pdf${index}`]}
                       accept=".pdf" 
+                      style={{ display: 'none' }}          // ⟵ חדש: מסתיר את ה־input
                       className="file-input"
                       onChange={(e) => handleFileSelect(e, index)}
                       required
