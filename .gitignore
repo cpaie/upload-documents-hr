@@ -62,3 +62,4 @@ jspm_packages/
 .yarn-integrity 
 GitInstaller.exe
 package-lock.json
+*.cache
