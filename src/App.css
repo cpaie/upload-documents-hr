@@ -3,6 +3,87 @@
   text-align: center;
   margin-bottom: 3rem;
   color: white;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 60px; /* Add padding to prevent overlap */
+}
+
+.header-right {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 10; /* Ensure it's above other elements */
+}
+
+.signup-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.signup-button:hover {
+  background: #0056b3;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-email {
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.signout-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease;
+}
+
+.signout-button:hover {
+  background: #c82333;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 20px;
+  color: white;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .logo {
@@ -11,6 +92,7 @@
   justify-content: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  margin-top: 20px; /* Add margin to push it down from the auth buttons */
 }
 
 .logo i {
@@ -166,6 +248,22 @@
   
   .main-content {
     padding: 1.5rem;
+  }
+  
+  .header {
+    padding-top: 80px; /* More padding on mobile */
+  }
+  
+  .header-right {
+    top: 15px;
+    right: 15px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .user-section {
+    flex-direction: column;
+    gap: 5px;
   }
   
   .logo h1 {
