@@ -181,6 +181,69 @@
   color: #0056b3;
 }
 
+.divider {
+  text-align: center;
+  margin: 20px 0;
+  position: relative;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e1e5e9;
+}
+
+.divider span {
+  background: white;
+  padding: 0 15px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* Azure Login Styles */
+.azure-login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0;
+}
+
+.azure-login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: #0078d4;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  min-width: 200px;
+  direction: rtl;
+}
+
+.azure-login-button:hover {
+  background: #106ebe;
+}
+
+.azure-login-button:active {
+  background: #005a9e;
+}
+
+.azure-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 /* Responsive design */
 @media (max-width: 480px) {
   .popup-content {

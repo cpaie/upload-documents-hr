@@ -134,7 +134,7 @@ const HebrewForm = ({ onDataFetched, user }) => {
         {/* Main ID Image Upload */}
         {renderFileInput(
           'ת״ז העלאת תמונה',
-          'image/jpeg,image/jpg,image/png',
+          'image/jpeg,image/jpg,image/png,.pdf,.doc,.docx',
           (file) => handleFileChange('mainIdImage', file),
           formData.mainIdImage,
           'main-id-image'
@@ -168,7 +168,7 @@ const HebrewForm = ({ onDataFetched, user }) => {
               
                              {renderFileInput(
                  'ת״ז',
-                 'image/jpeg,image/jpg,image/png',
+                 '.pdf,.doc,.docx,image/jpeg,image/jpg,image/png',
                  (file) => updateAdditionalId(index, 'idImage', file),
                  item.idImage,
                  `additional-id-${index}`

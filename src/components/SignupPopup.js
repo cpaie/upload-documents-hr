@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useMsal } from '@azure/msal-react';
 import { supabase } from './SubabaseClient.js';
+import { loginRequest } from '../config/azureAuth';
 import './SignupPopup.css';
 
 const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
+  const { instance } = useMsal();
   const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -56,6 +59,44 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
       console.error('Authentication error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAzureLogin = async () => {
+    try {
+      // Check if Azure is properly configured
+      if (!instance || !loginRequest) {
+        setError('Azure לא מוגדר כראוי. אנא בדוק את הגדרות Azure.');
+        return;
+      }
+
+      const response = await instance.loginPopup(loginRequest);
+      
+      if (response) {
+        // Create a user object similar to Supabase format
+        const azureUser = {
+          id: response.account.localAccountId,
+          email: response.account.username,
+          name: response.account.name,
+          provider: 'azure'
+        };
+        
+        // Call the callback to pass user data to parent
+        if (onUserAuthenticated) {
+          onUserAuthenticated(azureUser);
+        }
+      }
+    } catch (error) {
+      console.error('Azure login error:', error);
+      if (error.message.includes('AADSTS700016')) {
+        setError('Azure לא מוגדר כראוי. אנא בדוק את הגדרות Client ID ו-Tenant ID.');
+      } else if (error.message.includes('AADSTS900023')) {
+        setError('Tenant ID לא תקין. אנא בדוק את הגדרות Azure AD שלך.');
+      } else if (error.message.includes('YOUR_AZURE_CLIENT_ID') || error.message.includes('YOUR_TENANT_ID')) {
+        setError('Azure לא מוגדר. אנא הגדר את Client ID ו-Tenant ID בקובץ azureAuth.js');
+      } else {
+        setError('שגיאה בהתחברות עם Azure: ' + error.message);
+      }
     }
   };
 
@@ -128,6 +169,22 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
             {loading ? 'טוען...' : (isSignUp ? 'הרשמה' : 'התחברות')}
           </button>
         </form>
+
+        <div className="divider">
+          <span>או</span>
+        </div>
+
+        <div className="azure-login-container">
+          <button 
+            className="azure-login-button"
+            onClick={handleAzureLogin}
+          >
+            <svg className="azure-icon" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.4 24H0L12 0h12L11.4 24zM12 6.4l6.08 14.4H12V6.4z"/>
+            </svg>
+            התחבר עם Microsoft Azure
+          </button>
+        </div>
 
         <div className="toggle-section">
           <p>
