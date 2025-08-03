@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.css';
 import PDFUploadForm from './components/PDFUploadForm';
+import DataGrid from './components/DataGrid';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
 
         <main className="main-content">
           <PDFUploadForm />
+          <DataGrid />
         </main>
       </div>
     </div>
