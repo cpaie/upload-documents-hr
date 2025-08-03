@@ -93,7 +93,7 @@ function App() {
                 </div>
               ) : (
                 <button className="signup-button" onClick={() => setShowSignup(true)}>
-                  התחבר / הרשם
+                  התחברות
                 </button>
               )}
             </div>

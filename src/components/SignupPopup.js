@@ -6,7 +6,6 @@ import './SignupPopup.css';
 
 const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
   const { instance } = useMsal();
-  const [isSignUp, setIsSignUp] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,39 +19,22 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
     setMessage('');
 
     try {
-      if (isSignUp) {
-        // Sign up
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
+      // Sign in only
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-        if (error) {
-          throw error;
-        }
+      if (error) {
+        throw error;
+      }
 
-        if (data.user) {
-          setMessage('המשתמש נוצר בהצלחה! בדוק את האימייל שלך לאישור.');
-          onUserAuthenticated(data.user);
-        }
-      } else {
-        // Sign in
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data.user) {
-          setMessage('התחברת בהצלחה!');
-          onUserAuthenticated(data.user);
-          setTimeout(() => {
-            onClose();
-          }, 1500);
-        }
+      if (data.user) {
+        setMessage('התחברת בהצלחה!');
+        onUserAuthenticated(data.user);
+        setTimeout(() => {
+          onClose();
+        }, 1500);
       }
     } catch (err) {
       setError(err.message);
@@ -118,7 +100,7 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
         </button>
         
         <div className="popup-header">
-          <h2>{isSignUp ? 'הרשמה' : 'התחברות'}</h2>
+          <h2>התחברות</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
@@ -166,7 +148,7 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
             className="submit-button"
             disabled={loading}
           >
-            {loading ? 'טוען...' : (isSignUp ? 'הרשמה' : 'התחברות')}
+            {loading ? 'טוען...' : 'התחברות'}
           </button>
         </form>
 
@@ -186,20 +168,9 @@ const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
           </button>
         </div>
 
-        <div className="toggle-section">
+        <div className="info-section">
           <p>
-            {isSignUp ? 'יש לך כבר חשבון?' : 'אין לך חשבון?'}
-            <button
-              type="button"
-              className="toggle-button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError(null);
-                setMessage('');
-              }}
-            >
-              {isSignUp ? 'התחבר כאן' : 'הרשם כאן'}
-            </button>
+            אין לך חשבון? אנא פנה למנהל המערכת להרשמה.
           </p>
         </div>
       </div>
