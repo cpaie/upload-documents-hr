@@ -24,9 +24,8 @@ const MainApp = ({ user }) => {
           <div className="back-button-container">
             <button 
               className="back-button"
-              onClick={handleBackToForm}
-            >
-              ← חזור לטופס
+              onClick={handleBackToForm}>
+              <span>←</span> חזור לטופס 
             </button>
           </div>
           <DataGrid initialData={fetchedData} user={user} />

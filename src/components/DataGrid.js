@@ -98,7 +98,7 @@ const DataGrid = ({ initialData = [], user }) => {
   return (
     <div className="data-grid-container">
       <div className="data-grid-header">
-        <h2>עריכת נתוני אנשים</h2>
+        
         <div className="header-buttons">
           <button 
             className="fetch-button"
@@ -108,6 +108,7 @@ const DataGrid = ({ initialData = [], user }) => {
             {loading ? 'טוען...' : 'טען נתונים'}
           </button>
         </div>
+        <h2>עריכת נתונים אנשים</h2>
       </div>
 
       {error && (
