@@ -504,7 +504,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       console.warn('[STEP 8.5.2] OneDrive configuration missing, using fallback mode');
       console.warn('[STEP 8.5.2] Please create a .env.local file with the following variables:');
       console.warn('[STEP 8.5.2] REACT_APP_AZURE_CLIENT_ID=0e489b27-1a2f-48c0-a772-63bc61e6a8a9');
-      console.warn('[STEP 8.5.2] REACT_APP_AZURE_CLIENT_SECRET=0-L8Q~tSkOPV8~WFHDMin_gik~vcakutuLJYua1P');
+              console.warn('[STEP 8.5.2] REACT_APP_AZURE_CLIENT_SECRET is set');
       console.warn('[STEP 8.5.2] REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824');
       
       // Create fallback documents array without OneDrive
@@ -1086,7 +1086,7 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
               <li>Add the following Azure AD configuration:</li>
               <pre>
 {`REACT_APP_AZURE_CLIENT_ID=0e489b27-1a2f-48c0-a772-63bc61e6a8a9
-REACT_APP_AZURE_CLIENT_SECRET=0-L8Q~tSkOPV8~WFHDMin_gik~vcakutuLJYua1P
+        REACT_APP_AZURE_CLIENT_SECRET=your_client_secret_here
 REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824`}
               </pre>
               <li>Restart the development server</li>

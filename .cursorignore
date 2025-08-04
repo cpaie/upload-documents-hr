@@ -1,0 +1,36 @@
+# Test files containing secrets - should not be tracked
+test-permissions.js
+test-onedrive-simple.js
+test-azure-auth.js
+quick-permission-test.js
+check-app-permissions.js
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Cache
+*.cache
+.cache/ 

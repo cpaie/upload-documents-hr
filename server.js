@@ -23,7 +23,7 @@ const upload = multer({
 // OneDrive configuration
 const ONEDRIVE_CONFIG = {
   clientId: '0e489b27-1a2f-48c0-a772-63bc61e6a8a9',
-  clientSecret: '0-L8Q~tSkOPV8~WFHDMin_gik~vcakutuLJYua1P',
+  clientSecret: process.env.REACT_APP_AZURE_CLIENT_SECRET,
   tenantId: '22fde68e-d975-441b-a414-73ff55b29824',
   userEmail: 'dudy@cpaie.co.il'
 };
