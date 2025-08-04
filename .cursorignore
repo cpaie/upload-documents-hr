@@ -4,6 +4,19 @@ test-onedrive-simple.js
 test-azure-auth.js
 quick-permission-test.js
 check-app-permissions.js
+test-server.js
+test-webhook.js
+WEBHOOK_TROUBLESHOOTING.md
+delegated-auth-test.js
+
+# Files with hardcoded secrets - should be ignored
+src/components/PDFUploadForm.js
+src/components/HebrewForm.js
+server.js
+src/config/azureAuth.js
+src/components/SubabaseClient.js
+
+
 
 # Environment files
 .env
