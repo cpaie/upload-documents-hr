@@ -50,7 +50,10 @@ pdf-upload-react/
 │   │   ├── FirebaseUploadForm.js   # Firebase upload component
 │   │   └── PDFUploadForm.css       # Component styles
 │   ├── services/
-│   │   └── firebaseService.js      # Firebase service functions
+│   │   ├── firebaseService.js      # Firebase service functions
+│   │   └── oneDriveService.js      # OneDrive service functions
+│   ├── config/
+│   │   └── azureAuth.js            # Azure AD configuration
 │   ├── firebase.js                 # Firebase configuration
 │   ├── App.js                      # Main App component
 │   ├── App.css                     # App styles
@@ -93,11 +96,63 @@ Uploads files to Firebase Storage and stores metadata in Firestore.
 **Setup Instructions**:
 - See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed setup guide
 
+### 3. OneDrive Upload (New)
+Uploads files to OneDrive and sends metadata to Make.com webhooks.
+
+**Features**:
+- ✅ File storage in OneDrive
+- ✅ OneDrive file IDs and URLs sent to webhook
+- ✅ Session-based folder organization
+- ✅ Real-time progress tracking
+- ✅ Comprehensive error handling
+- ✅ Azure AD authentication
+
+**Setup Instructions**:
+- See [AZURE_SETUP.md](AZURE_SETUP.md) for detailed setup guide
+
 ## Usage
 
 ### Webhook Upload Mode
 
 1. **Switch to Webhook Mode**: Use the toggle in the header
+
+### OneDrive Upload Mode
+
+1. **Enter User Email**: Provide your email address for OneDrive access
+2. **Upload Files**: Select or drag and drop PDF files
+3. **Fill Form Details**: Enter roles and document types
+4. **Submit**: Files are uploaded to OneDrive and metadata sent to webhook
+
+**Process Flow**:
+1. Files are uploaded to OneDrive in a session-specific folder
+2. OneDrive file IDs, URLs, and metadata are collected
+3. Metadata is sent to Make.com webhook (no base64 file data)
+4. Webhook receives structured data with OneDrive references
+
+**Webhook Data Structure**:
+```json
+{
+  "documents": [
+    {
+      "itemId": 0,
+      "filename": "document.pdf",
+      "fileType": "application/pdf",
+      "docType": "mainId",
+      "role": "מנהל",
+      "oneDriveFileId": "file-id-123",
+      "oneDriveWebUrl": "https://onedrive.live.com/...",
+      "oneDriveDownloadUrl": "https://graph.microsoft.com/...",
+      "fileSize": 123456,
+      "lastModified": "2025-01-01T12:00:00Z"
+    }
+  ],
+  "documentType": "incorporation",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "totalFiles": "3",
+  "oneDriveSessionFolder": "upload-session-1234567890",
+  "userEmail": "user@example.com"
+}
+```
 2. **Enter Webhook URL**: Paste your Make.com webhook URL
 3. **Enter API Key**: Add your webhook API key
 4. **Select Files**: Click or drag and drop PDF files

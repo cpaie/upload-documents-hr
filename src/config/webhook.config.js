@@ -7,8 +7,8 @@ export const webhookConfig = {
   defaultUrl: process.env.REACT_APP_WEBHOOK_URL,
   // Default API key - must be set in .env
   defaultApiKey: process.env.REACT_APP_WEBHOOK_API_KEY,
-  // Webhook timeout in milliseconds
-  timeout: parseInt(process.env.REACT_APP_WEBHOOK_TIMEOUT) || 30000,
+  // Webhook timeout in milliseconds (5 minutes default for large file uploads)
+  timeout: parseInt(process.env.REACT_APP_WEBHOOK_TIMEOUT) || 300000,
   // Maximum retry attempts
   maxRetries: parseInt(process.env.REACT_APP_WEBHOOK_MAX_RETRIES) || 3,
   // Request headers
