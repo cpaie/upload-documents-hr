@@ -61,3 +61,8 @@ jspm_packages/
 # Yarn Integrity file
 .yarn-integrity 
 GitInstaller.exe
+package-lock.json
+*.cache
+
+# Test output files
+Testoutput.json

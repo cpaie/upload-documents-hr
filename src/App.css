@@ -3,6 +3,87 @@
   text-align: center;
   margin-bottom: 3rem;
   color: white;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 60px; /* Add padding to prevent overlap */
+}
+
+.header-right {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  z-index: 10; /* Ensure it's above other elements */
+}
+
+.signup-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.signup-button:hover {
+  background: #0056b3;
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-email {
+  color: #fff;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.signout-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.3s ease;
+}
+
+.signout-button:hover {
+  background: #c82333;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 20px;
+  color: white;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .logo {
@@ -11,6 +92,7 @@
   justify-content: center;
   gap: 1rem;
   margin-bottom: 1rem;
+  margin-top: 20px; /* Add margin to push it down from the auth buttons */
 }
 
 .logo i {
@@ -28,7 +110,10 @@
   font-size: 1.1rem;
   opacity: 0.9;
   font-weight: 300;
+  margin-bottom: 2rem;
 }
+
+
 
 /* Main content */
 .main-content {
@@ -38,6 +123,121 @@
   box-shadow: 0 20px 40px rgba(0,0,0,0.1);
   backdrop-filter: blur(10px);
   flex: 1;
+}
+
+/* Uploads History Styles */
+.uploads-history {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.uploads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.upload-item:hover {
+  background: #e9ecef;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.upload-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.upload-info i {
+  font-size: 1.5rem;
+  color: #dc3545;
+}
+
+.upload-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.upload-name {
+  font-weight: 600;
+  color: #333;
+}
+
+.upload-size {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.upload-date {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.upload-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.download-btn, .delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.download-btn {
+  background: #28a745;
+  color: white;
+}
+
+.download-btn:hover {
+  background: #218838;
+  transform: scale(1.1);
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+.no-uploads {
+  text-align: center;
+  padding: 2rem;
+  color: #999;
+  font-style: italic;
 }
 
 /* Responsive design */
@@ -50,8 +250,36 @@
     padding: 1.5rem;
   }
   
+  .header {
+    padding-top: 80px; /* More padding on mobile */
+  }
+  
+  .header-right {
+    top: 15px;
+    right: 15px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .user-section {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
   .logo h1 {
     font-size: 2rem;
+  }
+  
+
+  
+  .upload-item {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .upload-actions {
+    align-self: flex-end;
   }
 }
 
@@ -68,4 +296,6 @@
   .main-content {
     padding: 1rem;
   }
+  
+
 } 
