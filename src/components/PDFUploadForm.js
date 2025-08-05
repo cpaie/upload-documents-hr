@@ -692,8 +692,14 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     console.log('[STEP 10] OneDrive upload completed, sending metadata to webhook');
     
     // Check if we have the required data for webhook upload
-    if (!webhookPayload || !webhookPayload[0] || !documentsArray.length) {
-      throw new Error('Failed to prepare data for webhook upload. OneDrive upload may have failed.');
+    if (!documentsArray || documentsArray.length === 0) {
+      console.error('[ERROR] No documents to upload:', { documentsArray });
+      throw new Error('No documents prepared for upload. Please check your file selections.');
+    }
+    
+    if (!webhookPayload || !webhookPayload[0]) {
+      console.error('[ERROR] Webhook payload not prepared:', { webhookPayload });
+      throw new Error('Failed to prepare webhook payload. Please try again.');
     }
     
     // Simulate progress updates

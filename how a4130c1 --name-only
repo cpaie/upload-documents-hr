@@ -1,0 +1,10 @@
+[33med767ee[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32msubabase-clean[m[33m, [m[1;31morigin/subabase-clean[m[33m)[m Add files with secrets to .cursorignore
+[33m72bbdae[m[33m ([m[1;32msubabase[m[33m)[m Remove secrets from code and add .cursorignore
+[33mbfbeb1f[m uploading id (multi id's) with role, updating data manually and confirm from second page (documentview), everything in supabase, pdfs filed into onedrive uploading תעודת התאגדות. need to check if תעודת עוסק פטור ועוסק מורשה עובד. need to fix appearance and style, remove debugging tools etc. need to start develope the next stage after this stage.
+[33me4c2641[m[33m ([m[1;31morigin/subabase[m[33m)[m remove signup option
+[33mc5085d6[m enable azure support
+[33mf90082c[m cometics
+[33ma4130c1[m user registration/authentication
+[33m1a5e384[m fetch data
+[33m95c93e1[m supabase client
+[33m09665bd[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m Display only uplaod fles section, also display webhook results

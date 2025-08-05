@@ -6,7 +6,7 @@ export const msalConfig = {
     clientId: process.env.REACT_APP_AZURE_CLIENT_ID || "8104d14d-25d6-4df7-851a-3a87d051eb5b", // Your Azure AD App Registration Client ID
     authority: process.env.REACT_APP_AZURE_TENANT_ID 
       ? `https://login.microsoftonline.com/${process.env.REACT_APP_AZURE_TENANT_ID}`
-      : "https://login.microsoftonline.com/22fde68e-d975-441b-a414-73ff55b29824", // Your tenant ID
+      : `https://login.microsoftonline.com/${process.env.REACT_APP_AZURE_TENANT_ID || '22fde68e-d975-441b-a414-73ff55b29824'}`, // Your tenant ID
     redirectUri: window.location.origin, // Redirects to your app after login
   },
   cache: {
