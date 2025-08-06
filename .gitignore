@@ -90,3 +90,8 @@ package-lock.json
 .cursorignore
 test-azure-auth.js
 test-onedrive-simple.js
+test-google-drive.js
+test-oauth2.js
+test-server-simple.js
+server-fixed.js
+server-simple.js

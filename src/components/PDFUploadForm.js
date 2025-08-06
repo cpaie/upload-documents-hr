@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { webhookConfig } from '../config/webhook.config';
-import oneDriveService from '../services/oneDriveService';
+import googleDriveService from '../services/googleDriveService';
+import googleDriveDirectService from '../services/googleDriveDirectService';
 import './PDFUploadForm.css';
 
 const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles, onFormDataSaved, user }) => {
@@ -37,10 +38,14 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   // Get user email from authenticated user (supports multiple auth providers)
   const userEmail = user?.email || user?.username || user?.user_metadata?.email || '';
   
-  // Check if OneDrive configuration is available
-  const hasOneDriveConfig = process.env.REACT_APP_AZURE_CLIENT_ID && 
-                           process.env.REACT_APP_AZURE_CLIENT_SECRET && 
-                           process.env.REACT_APP_AZURE_TENANT_ID;
+  // Check if Google Drive configuration is available (Service Account)
+  const hasGoogleDriveConfig = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
+                              process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
+                              process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  
+  // Choose between backend and direct service based on user preference
+  const useDirectUpload = process.env.REACT_APP_USE_DIRECT_UPLOAD === 'true';
+  const googleDriveServiceToUse = useDirectUpload ? googleDriveDirectService : googleDriveService;
   
   // Log user information for debugging
   console.log('[PDFUploadForm] User information:', {
@@ -49,15 +54,17 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     username: user?.username,
     user_metadata: user?.user_metadata,
     extractedEmail: userEmail,
-    hasOneDriveConfig: hasOneDriveConfig
+    hasGoogleDriveConfig: hasGoogleDriveConfig
   });
   
   // Debug environment variables
   console.log('[PDFUploadForm] Environment variables check:', {
-    REACT_APP_AZURE_CLIENT_ID: process.env.REACT_APP_AZURE_CLIENT_ID ? 'SET' : 'NOT SET',
-    REACT_APP_AZURE_CLIENT_SECRET: process.env.REACT_APP_AZURE_CLIENT_SECRET ? 'SET' : 'NOT SET',
-    REACT_APP_AZURE_TENANT_ID: process.env.REACT_APP_AZURE_TENANT_ID ? 'SET' : 'NOT SET',
-    hasOneDriveConfig: hasOneDriveConfig
+    REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
+    GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
+    REACT_APP_GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET',
+    REACT_APP_USE_DIRECT_UPLOAD: process.env.REACT_APP_USE_DIRECT_UPLOAD,
+    hasGoogleDriveConfig: hasGoogleDriveConfig,
+    useDirectUpload: useDirectUpload
   });
   
   const fileInputRefs = {
@@ -417,9 +424,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     console.log('[STEP 7.2] Generated upload session ID:', uploadSessionId);
     
     if (!userEmail) {
-      console.error('[ERROR] User email is required for OneDrive upload');
+      console.error('[ERROR] User email is required for Google Drive upload');
       console.error('[ERROR] User object:', user);
-      throw new Error('User email is required for OneDrive upload. Your account is logged in but no email address was found. Please contact support or try logging in with a different account.');
+      throw new Error('User email is required for Google Drive upload. Your account is logged in but no email address was found. Please contact support or try logging in with a different account.');
     }
     
     // Create documents array structure
@@ -476,8 +483,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       type: doc.type
     })));
     
-    // Upload files to OneDrive
-    console.log('[STEP 8.5] Starting OneDrive upload process');
+    // Upload files to Google Drive
+    console.log('[STEP 8.5] Starting Google Drive upload process');
     setIsOneDriveUploading(true);
     
     // Initialize variables that will be used outside the try block
@@ -485,38 +492,36 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     let documentsArray = [];
     let sessionFolderName = '';
     
-    // Check if OneDrive configuration is available
-    const hasOneDriveConfig = process.env.REACT_APP_AZURE_CLIENT_ID && 
-                             process.env.REACT_APP_AZURE_CLIENT_SECRET && 
-                             process.env.REACT_APP_AZURE_TENANT_ID;
+    // Check if Google Drive configuration is available (Service Account)
+    const hasGoogleDriveConfig = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
+                                process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
+                                process.env.REACT_APP_GOOGLE_CLIENT_ID;
     
-    console.log('[STEP 8.5.1] OneDrive configuration check:', {
-      hasClientId: !!process.env.REACT_APP_AZURE_CLIENT_ID,
-      hasClientSecret: !!process.env.REACT_APP_AZURE_CLIENT_SECRET,
-      hasTenantId: !!process.env.REACT_APP_AZURE_TENANT_ID,
-      hasOneDriveConfig: hasOneDriveConfig,
-      clientId: process.env.REACT_APP_AZURE_CLIENT_ID ? 'SET' : 'NOT SET',
-      clientSecret: process.env.REACT_APP_AZURE_CLIENT_SECRET ? 'SET' : 'NOT SET',
-      tenantId: process.env.REACT_APP_AZURE_TENANT_ID ? 'SET' : 'NOT SET'
+    console.log('[STEP 8.5.1] Google Drive configuration check:', {
+      hasReactAppServiceAccountKey: !!process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
+      hasServiceAccountKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
+      hasClientId: !!process.env.REACT_APP_GOOGLE_CLIENT_ID,
+      hasGoogleDriveConfig: hasGoogleDriveConfig,
+      reactAppServiceAccountKey: process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
+      serviceAccountKey: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
+      clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET'
     });
     
-    if (!hasOneDriveConfig) {
-      console.warn('[STEP 8.5.2] OneDrive configuration missing, using fallback mode');
-      console.warn('[STEP 8.5.2] Please create a .env.local file with the following variables:');
-      console.warn('[STEP 8.5.2] REACT_APP_AZURE_CLIENT_ID=0e489b27-1a2f-48c0-a772-63bc61e6a8a9');
-              console.warn('[STEP 8.5.2] REACT_APP_AZURE_CLIENT_SECRET is set');
-      console.warn('[STEP 8.5.2] REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824');
+    if (!hasGoogleDriveConfig) {
+      console.warn('[STEP 8.5.2] Google Drive configuration missing, using fallback mode');
+      console.warn('[STEP 8.5.2] Please ensure service-account-key.json exists and add to .env:');
+      console.warn('[STEP 8.5.2] GOOGLE_SERVICE_ACCOUNT_KEY_FILE=./service-account-key.json');
       
-      // Create fallback documents array without OneDrive
+      // Create fallback documents array without Google Drive
       documentsArray = documents.map((doc, index) => ({
         itemId: index,
         filename: doc.file.name,
         fileType: doc.file.type || 'application/pdf',
         docType: doc.type,
         role: doc.role,
-        oneDriveFileId: `fallback-${Date.now()}-${index}`,
-        oneDriveWebUrl: `https://example.com/fallback/${doc.file.name}`,
-        oneDriveDownloadUrl: `https://example.com/fallback/${doc.file.name}`,
+        googleDriveFileId: `fallback-${Date.now()}-${index}`,
+        googleDriveWebUrl: `https://example.com/fallback/${doc.file.name}`,
+        googleDriveDownloadUrl: `https://example.com/fallback/${doc.file.name}`,
         fileSize: doc.file.size,
         lastModified: new Date().toISOString()
       }));
@@ -528,7 +533,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
         const baseFolderPath = `PDF-Uploads/${today}/${uploadSessionId}`;
         
-        console.log('[STEP 8.6] Creating organized OneDrive folder structure:', baseFolderPath);
+        console.log('[STEP 8.6] Creating organized Google Drive folder structure:', baseFolderPath);
         
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
@@ -544,51 +549,57 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         // Upload files to their respective folders
         const allResults = [];
         
+        // Get access token for direct upload if needed
+        if (useDirectUpload) {
+          console.log('[STEP 8.6.5] Getting access token for direct upload');
+          await googleDriveServiceToUse.getAccessToken(user);
+        }
+        
         // Upload main ID files
         if (mainIdFiles.length > 0) {
           console.log('[STEP 8.7.1] Uploading main ID files to main-id folder');
-          const mainIdResults = await oneDriveService.uploadMultipleFiles(mainIdFiles, userEmail, `${baseFolderPath}/main-id`);
+          const mainIdResults = await googleDriveServiceToUse.uploadMultipleFiles(mainIdFiles, userEmail, `${baseFolderPath}/main-id`);
           allResults.push(...mainIdResults.uploadResults);
         }
         
         // Upload additional ID files
         if (additionalIdFiles.length > 0) {
           console.log('[STEP 8.7.2] Uploading additional ID files to additional-ids folder');
-          const additionalIdResults = await oneDriveService.uploadMultipleFiles(additionalIdFiles, userEmail, `${baseFolderPath}/additional-ids`);
+          const additionalIdResults = await googleDriveServiceToUse.uploadMultipleFiles(additionalIdFiles, userEmail, `${baseFolderPath}/additional-ids`);
           allResults.push(...additionalIdResults.uploadResults);
         }
         
         // Upload certificate files
         if (certificateFiles.length > 0) {
           console.log('[STEP 8.7.3] Uploading certificate files to certificate folder');
-          const certificateResults = await oneDriveService.uploadMultipleFiles(certificateFiles, userEmail, `${baseFolderPath}/certificate`);
+          const certificateResults = await googleDriveServiceToUse.uploadMultipleFiles(certificateFiles, userEmail, `${baseFolderPath}/certificate`);
           allResults.push(...certificateResults.uploadResults);
         }
         
-        console.log('[STEP 8.8] OneDrive upload completed:', {
+        console.log('[STEP 8.8] Google Drive upload completed:', {
           successful: allResults.length,
           total: documents.length,
           folderStructure: baseFolderPath
         });
         
-        // Create documents array with OneDrive URLs
-        console.log('[STEP 8.9] Creating documents array with OneDrive URLs');
+        // Create documents array with Google Drive URLs
+        console.log('[STEP 8.9] Creating documents array with Google Drive URLs');
         documentsArray = allResults.map((result, index) => ({
           itemId: result.originalIndex,
           filename: result.fileName,
           fileType: 'application/pdf',
           docType: result.type,
           role: result.role,
-          oneDriveFileId: result.fileId,
-          oneDriveWebUrl: result.webUrl,
-          oneDriveDownloadUrl: result.downloadUrl,
+          googleDriveFileId: result.fileId,
+          googleDriveWebUrl: result.webUrl,
+          googleDriveDownloadUrl: result.downloadUrl,
           fileSize: result.size,
           lastModified: result.lastModified
         }));
         
         sessionFolderName = baseFolderPath;
-      } catch (oneDriveError) {
-        console.error('[ERROR] OneDrive upload failed:', oneDriveError);
+      } catch (googleDriveError) {
+        console.error('[ERROR] Google Drive upload failed:', googleDriveError);
         // Fallback to basic document structure
         documentsArray = documents.map((doc, index) => ({
           itemId: index,
@@ -596,9 +607,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           fileType: doc.file.type || 'application/pdf',
           docType: doc.type,
           role: doc.role,
-          oneDriveFileId: `error-${Date.now()}-${index}`,
-          oneDriveWebUrl: `https://example.com/error/${doc.file.name}`,
-          oneDriveDownloadUrl: `https://example.com/error/${doc.file.name}`,
+          googleDriveFileId: `error-${Date.now()}-${index}`,
+          googleDriveWebUrl: `https://example.com/error/${doc.file.name}`,
+          googleDriveDownloadUrl: `https://example.com/error/${doc.file.name}`,
           fileSize: doc.file.size,
           lastModified: new Date().toISOString()
         }));
@@ -612,8 +623,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       filename: doc.filename,
       docType: doc.docType,
       role: doc.role,
-      oneDriveFileId: doc.oneDriveFileId,
-      oneDriveWebUrl: doc.oneDriveWebUrl
+      googleDriveFileId: doc.googleDriveFileId,
+      googleDriveWebUrl: doc.googleDriveWebUrl
     })));
     
     // Create JSON payload for webhook
@@ -626,7 +637,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         documentType: formData.documentType,
         timestamp: new Date().toISOString(),
         totalFiles: documentsArray.length,
-        oneDriveSessionFolder: sessionFolderName,
+        googleDriveSessionFolder: sessionFolderName,
         userEmail: userEmail,
         apiKey: webhookConfig.defaultApiKey,
         key: webhookConfig.defaultApiKey
@@ -637,15 +648,15 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       payloadType: 'Array for Make.com iterator',
       documentsCount: documentsArray.length,
       documentType: formData.documentType,
-      oneDriveSessionFolder: sessionFolderName,
+      googleDriveSessionFolder: sessionFolderName,
       userEmail: userEmail,
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        oneDriveFileId: doc.oneDriveFileId,
-        oneDriveWebUrl: doc.oneDriveWebUrl
+        googleDriveFileId: doc.googleDriveFileId,
+        googleDriveWebUrl: doc.googleDriveWebUrl
       }))
     });
     
@@ -653,15 +664,15 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       timestamp: new Date().toISOString(),
       totalFiles: documentsArray.length,
       documentType: formData.documentType,
-      oneDriveSessionFolder: sessionFolderName,
+      googleDriveSessionFolder: sessionFolderName,
       userEmail: userEmail,
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        oneDriveFileId: doc.oneDriveFileId,
-        oneDriveWebUrl: doc.oneDriveWebUrl
+        googleDriveFileId: doc.googleDriveFileId,
+        googleDriveWebUrl: doc.googleDriveWebUrl
       }))
     });
     
@@ -675,21 +686,21 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     
     console.log('Upload request details:', {
       webhookUrl: webhookConfig.defaultUrl,
-      oneDriveSessionFolder: sessionFolderName,
+      googleDriveSessionFolder: sessionFolderName,
       userEmail: userEmail,
       documents: documentsArray.map(doc => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        oneDriveFileId: doc.oneDriveFileId,
-        oneDriveWebUrl: doc.oneDriveWebUrl
+        googleDriveFileId: doc.googleDriveFileId,
+        googleDriveWebUrl: doc.googleDriveWebUrl
       })),
       totalDocuments: documentsArray.length
     });
     
     // Continue with webhook upload
-    console.log('[STEP 10] OneDrive upload completed, sending metadata to webhook');
+    console.log('[STEP 10] Google Drive upload completed, sending metadata to webhook');
     
     // Check if we have the required data for webhook upload
     if (!documentsArray || documentsArray.length === 0) {
@@ -712,7 +723,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       });
     }, 200);
     
-    // Mark OneDrive upload as completed
+    // Mark Google Drive upload as completed
     setIsOneDriveUploading(false);
     
     try {
@@ -901,7 +912,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         showSuccess('הקבצים הועלו בהצלחה!', {
           sessionId: sessionId,
           totalFiles: documentsArray.length,
-          oneDriveSessionFolder: sessionFolderName,
+          googleDriveSessionFolder: sessionFolderName,
           responseData: responseData,
           parsedResponse: parsedResponse
         });
@@ -1027,7 +1038,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           </div>
           <div className="config-help">
             <p><strong>Please log in to continue:</strong></p>
-            <p>You must be logged in to upload files to OneDrive. Please use the login button in the header to authenticate.</p>
+            <p>You must be logged in to upload files to Google Drive. Please use the login button in the header to authenticate.</p>
           </div>
         </div>
       </div>
@@ -1052,9 +1063,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
             <i className={`fas ${userEmail ? 'fa-check-circle' : 'fa-times-circle'}`}></i>
             <span>User Authentication: {userEmail ? 'Logged In' : 'Not Logged In'}</span>
           </div>
-          <div className={`status-item ${hasOneDriveConfig ? 'success' : 'error'}`}>
-            <i className={`fas ${hasOneDriveConfig ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
-            <span>OneDrive Upload: {hasOneDriveConfig ? 'Ready' : 'Configuration Missing'}</span>
+          <div className={`status-item ${hasGoogleDriveConfig ? 'success' : 'error'}`}>
+            <i className={`fas ${hasGoogleDriveConfig ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
+            <span>Google Drive Upload: {hasGoogleDriveConfig ? 'Ready' : 'Configuration Missing'}</span>
           </div>
         </div>
         {(!webhookConfig.defaultUrl || !webhookConfig.defaultApiKey) && (
@@ -1076,28 +1087,26 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
             <p><strong>Email Not Found:</strong></p>
             <p>Your account is logged in but no email address was found. This might be due to:</p>
             <ul>
-              <li>Azure AD account without email</li>
+              <li>Google account without email</li>
               <li>Approved user account without email</li>
               <li>Authentication provider configuration issue</li>
             </ul>
             <p><strong>Current user status:</strong> {user ? 'User object exists but no email found' : 'No user logged in'}</p>
           </div>
         )}
-        {!hasOneDriveConfig && (
+        {!hasGoogleDriveConfig && (
           <div className="config-help">
-            <p><strong>OneDrive Configuration Missing:</strong></p>
-            <p>To enable OneDrive uploads, you need to configure Azure AD credentials:</p>
+            <p><strong>Google Drive Configuration Missing:</strong></p>
+            <p>To enable Google Drive uploads, you need to configure Google Service Account:</p>
             <ol>
-              <li>Create a <code>.env.local</code> file in the project root</li>
-              <li>Add the following Azure AD configuration:</li>
+              <li>Ensure <code>service-account-key.json</code> exists in the project root</li>
+              <li>Add the following to your <code>.env</code> file:</li>
               <pre>
-{`REACT_APP_AZURE_CLIENT_ID=0e489b27-1a2f-48c0-a772-63bc61e6a8a9
-        REACT_APP_AZURE_CLIENT_SECRET=your_client_secret_here
-REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824`}
+{`GOOGLE_SERVICE_ACCOUNT_KEY_FILE=./service-account-key.json`}
               </pre>
               <li>Restart the development server</li>
             </ol>
-            <p><strong>Note:</strong> The system will work in fallback mode without OneDrive configuration, but files won't be uploaded to OneDrive.</p>
+            <p><strong>Note:</strong> The system will work in fallback mode without Google Drive configuration, but files won't be uploaded to Google Drive.</p>
           </div>
         )}
       </div>
@@ -1116,7 +1125,7 @@ REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824`}
                 </label>
                 <div className="user-email-display">
                   <span className="user-email">{userEmail}</span>
-                  <small className="form-help">מחובר כעת - נדרש להעלאת קבצים ל-OneDrive</small>
+                  <small className="form-help">מחובר כעת - נדרש להעלאת קבצים ל-Google Drive</small>
                 </div>
               </div>
             </div>
@@ -1389,7 +1398,7 @@ REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824`}
             {isOneDriveUploading ? (
               <>
                 <i className="fas fa-cloud-upload-alt fa-spin"></i>
-                מעלה ל-OneDrive...
+                מעלה ל-Google Drive...
               </>
             ) : isUploading ? (
               <>
@@ -1416,7 +1425,7 @@ REACT_APP_AZURE_TENANT_ID=22fde68e-d975-441b-a414-73ff55b29824`}
             ></div>
           </div>
           <p className="progress-text">
-            {isOneDriveUploading ? 'מעלה קבצים ל-OneDrive...' : 'שולח למעבד...'}
+            {isOneDriveUploading ? 'מעלה קבצים ל-Google Drive...' : 'שולח למעבד...'}
           </p>
         </div>
       )}

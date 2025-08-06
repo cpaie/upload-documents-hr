@@ -8,9 +8,10 @@ A modern React application for uploading PDF documents with support for both Mak
 - 📁 **Drag & Drop**: Intuitive file upload with drag and drop support
 - 🔒 **File Validation**: PDF-only uploads with size limits (10MB max)
 - 📊 **Progress Tracking**: Real-time upload progress with visual feedback
-- 🌐 **Dual Upload Modes**: 
+- 🌐 **Multiple Upload Modes**: 
   - Make.com webhook integration
   - Firebase Storage & Firestore integration
+  - Google Drive integration
 - 📱 **Mobile Responsive**: Works perfectly on all device sizes
 - ⚡ **Fast Development**: Built with Create React App for optimal performance
 - 🔥 **Firebase Features**: File storage, metadata management, download links, upload history
@@ -22,7 +23,11 @@ A modern React application for uploading PDF documents with support for both Mak
    npm install
    ```
 
-2. **Configure Firebase** (optional):
+2. **Configure Google Drive** (recommended):
+   - Follow the [Google Drive Setup Guide](GOOGLE_DRIVE_SETUP.md)
+   - Update your `.env` file with Google API credentials
+
+3. **Configure Firebase** (optional):
    - Follow the [Firebase Setup Guide](FIREBASE_SETUP.md)
    - Update `src/firebase.js` with your Firebase configuration
 
@@ -51,9 +56,9 @@ pdf-upload-react/
 │   │   └── PDFUploadForm.css       # Component styles
 │   ├── services/
 │   │   ├── firebaseService.js      # Firebase service functions
-│   │   └── oneDriveService.js      # OneDrive service functions
+│   │   └── googleDriveService.js   # Google Drive service functions
 │   ├── config/
-│   │   └── azureAuth.js            # Azure AD configuration
+│   │   └── googleDrive.config.js   # Google Drive configuration
 │   ├── firebase.js                 # Firebase configuration
 │   ├── App.js                      # Main App component
 │   ├── App.css                     # App styles
@@ -96,8 +101,18 @@ Uploads files to Firebase Storage and stores metadata in Firestore.
 **Setup Instructions**:
 - See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed setup guide
 
-### 3. OneDrive Upload (New)
-Uploads files to OneDrive and sends metadata to Make.com webhooks.
+### 3. Google Drive Upload (New)
+Uploads files to Google Drive and sends metadata to Make.com webhooks.
+
+**Features**:
+- ✅ File storage in Google Drive
+- ✅ Organized folder structure
+- ✅ Google OAuth authentication
+- ✅ Service account integration
+- ✅ Real-time progress tracking
+
+**Setup Instructions**:
+- See [GOOGLE_DRIVE_SETUP.md](GOOGLE_DRIVE_SETUP.md) for detailed setup guide
 
 **Features**:
 - ✅ File storage in OneDrive
@@ -295,4 +310,9 @@ For issues or questions:
 
 ---
 
-**Note**: This React application supports both Make.com webhook uploads and Firebase Storage uploads. Choose the mode that best fits your needs. Ensure you have proper permissions and security measures in place for your specific use case. 
+**Note**: This React application supports multiple upload modes:
+- **Make.com webhook uploads** - Send files to external processing
+- **Firebase Storage uploads** - Store files in Firebase
+- **Google Drive uploads** - Store files in Google Drive (with or without backend)
+
+Choose the mode that best fits your needs. Ensure you have proper permissions and security measures in place for your specific use case. 

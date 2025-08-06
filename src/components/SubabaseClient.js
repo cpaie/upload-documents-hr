@@ -1,6 +1,10 @@
 // supabaseClient.js
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_CONFIG } from '../config/environment.js';
 
-const supabaseUrl = 'https://jupbjbcskoetisooirza.supabase.co';
-const supabaseKey = 'sb_publishable_VPQY7rsQ42VHXxR7bfjaDQ_E9V-GPoI'; // public key
-export const supabase = createClient(supabaseUrl, supabaseKey);
+console.log('[SupabaseClient] Initializing with config:', {
+  url: SUPABASE_CONFIG.url,
+  anonKey: SUPABASE_CONFIG.anonKey ? '***' : 'MISSING'
+});
+
+export const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
