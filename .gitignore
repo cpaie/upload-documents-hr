@@ -79,7 +79,7 @@ Testoutput.json
 *_cert_id_rows*.json
 
 # Package lock files (optional - remove if you want to track them)
-package-lock.json
+# package-lock.json
 
 # Firebase
 .firebase/
