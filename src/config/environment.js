@@ -65,6 +65,11 @@ const GOOGLE_CLOUD_STORAGE_CONFIG = {
   uploadFolder: process.env.REACT_APP_GCS_UPLOAD_FOLDER || 'pdf-uploads'
 };
 
+const ONEDRIVE_CONFIG = {
+  clientId: process.env.REACT_APP_ONEDRIVE_CLIENT_ID,
+  clientSecret: process.env.REACT_APP_ONEDRIVE_CLIENT_SECRET,
+  redirectUri: process.env.REACT_APP_ONEDRIVE_REDIRECT_URI || (isDevelopment ? 'http://localhost:3000/auth/onedrive/callback' : 'https://coruscating-puppy-056d4c.netlify.app/auth/onedrive/callback')
+};
 
 export {
   API_CONFIG,
