@@ -26,6 +26,7 @@ const allowedOrigins = [
   'http://localhost:3000', 
   'http://127.0.0.1:3000',
   'https://upload-documents-hr.web.app', // Firebase Hosting URL
+  'https://coruscating-puppy-056d4c.netlify.app', // Netlify URL
   process.env.FRONTEND_URL, // Production frontend URL
   process.env.REACT_APP_FRONTEND_URL // Alternative env var
 ].filter(Boolean); // Remove undefined values
