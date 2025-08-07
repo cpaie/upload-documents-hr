@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { webhookConfig } from '../config/webhook.config';
-import googleDriveService from '../services/googleDriveService';
-import googleDriveDirectService from '../services/googleDriveDirectService';
+import googleCloudStorageService from '../services/googleCloudStorageService';
 import './PDFUploadForm.css';
 
 const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles, onFormDataSaved, user }) => {
@@ -43,9 +42,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
                               process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
                               process.env.REACT_APP_GOOGLE_CLIENT_ID;
   
-  // Choose between backend and direct service based on user preference
-  const useDirectUpload = process.env.REACT_APP_USE_DIRECT_UPLOAD === 'true';
-  const googleDriveServiceToUse = useDirectUpload ? googleDriveDirectService : googleDriveService;
+  // Use Google Cloud Storage service
+  const cloudStorageService = googleCloudStorageService;
   
   // Log user information for debugging
   console.log('[PDFUploadForm] User information:', {
@@ -64,7 +62,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     REACT_APP_GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET',
     REACT_APP_USE_DIRECT_UPLOAD: process.env.REACT_APP_USE_DIRECT_UPLOAD,
     hasGoogleDriveConfig: hasGoogleDriveConfig,
-    useDirectUpload: useDirectUpload
+    usingOAuthDelegation: true
   });
   
   const fileInputRefs = {
@@ -431,8 +429,26 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     
     // Create documents array structure
     console.log('[STEP 8] Creating documents array structure');
+    console.log('[STEP 8] Current file state:', {
+      hasIdDocument: !!uploadedFiles.idDocument,
+      hasSelectedDocument: !!uploadedFiles.selectedDocument,
+      idDocumentName: uploadedFiles.idDocument?.name,
+      selectedDocumentName: uploadedFiles.selectedDocument?.name,
+      additionalIdsWithDocs: formData.additionalIds.filter(id => id.idDocument).length
+    });
     
     const documents = [];
+    
+    // Check if files actually exist before trying to add them
+    if (!uploadedFiles.idDocument) {
+      console.error('[ERROR] Main ID document is missing in uploadFiles function');
+      throw new Error('Main ID document is missing. Please select a file and try again.');
+    }
+    
+    if (!uploadedFiles.selectedDocument) {
+      console.error('[ERROR] Selected document is missing in uploadFiles function');
+      throw new Error('Selected document is missing. Please select a file and try again.');
+    }
     
     // Add main ID document
     console.log('[STEP 8.1] Adding main ID document to documents array');
@@ -483,12 +499,17 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       type: doc.type
     })));
     
-    // Upload files to Google Drive
-    console.log('[STEP 8.5] Starting Google Drive upload process');
+    // Final validation before Google Drive upload
+    if (documents.length === 0) {
+      console.error('[ERROR] Documents array is empty before Cloud Storage upload');
+      throw new Error('No documents to upload. Please select files and try again.');
+    }
+    
+    // Upload files to Cloud Storage
+    console.log('[STEP 8.5] Starting Cloud Storage upload process');
     setIsOneDriveUploading(true);
     
     // Initialize variables that will be used outside the try block
-    let uploadFormData = null;
     let documentsArray = [];
     let sessionFolderName = '';
     
@@ -497,7 +518,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
                                 process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
                                 process.env.REACT_APP_GOOGLE_CLIENT_ID;
     
-    console.log('[STEP 8.5.1] Google Drive configuration check:', {
+    console.log('[STEP 8.5.1] Cloud Storage configuration check:', {
       hasReactAppServiceAccountKey: !!process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
       hasServiceAccountKey: !!process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE,
       hasClientId: !!process.env.REACT_APP_GOOGLE_CLIENT_ID,
@@ -533,7 +554,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
         const baseFolderPath = `PDF-Uploads/${today}/${uploadSessionId}`;
         
-        console.log('[STEP 8.6] Creating organized Google Drive folder structure:', baseFolderPath);
+        console.log('[STEP 8.6] Creating organized Cloud Storage folder structure:', baseFolderPath);
         
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
@@ -549,72 +570,63 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         // Upload files to their respective folders
         const allResults = [];
         
-        // Get access token for direct upload if needed
-        if (useDirectUpload) {
-          console.log('[STEP 8.6.5] Getting access token for direct upload');
-          await googleDriveServiceToUse.getAccessToken(user);
-        }
+        // No need for access token setup since we're using OAuth delegation service
         
         // Upload main ID files
         if (mainIdFiles.length > 0) {
           console.log('[STEP 8.7.1] Uploading main ID files to main-id folder');
-          const mainIdResults = await googleDriveServiceToUse.uploadMultipleFiles(mainIdFiles, userEmail, `${baseFolderPath}/main-id`);
+          const mainIdResults = await cloudStorageService.uploadMultipleFiles(mainIdFiles, userEmail, `${baseFolderPath}/main-id`);
           allResults.push(...mainIdResults.uploadResults);
         }
         
         // Upload additional ID files
         if (additionalIdFiles.length > 0) {
           console.log('[STEP 8.7.2] Uploading additional ID files to additional-ids folder');
-          const additionalIdResults = await googleDriveServiceToUse.uploadMultipleFiles(additionalIdFiles, userEmail, `${baseFolderPath}/additional-ids`);
+          const additionalIdResults = await cloudStorageService.uploadMultipleFiles(additionalIdFiles, userEmail, `${baseFolderPath}/additional-ids`);
           allResults.push(...additionalIdResults.uploadResults);
         }
         
         // Upload certificate files
         if (certificateFiles.length > 0) {
           console.log('[STEP 8.7.3] Uploading certificate files to certificate folder');
-          const certificateResults = await googleDriveServiceToUse.uploadMultipleFiles(certificateFiles, userEmail, `${baseFolderPath}/certificate`);
+          const certificateResults = await cloudStorageService.uploadMultipleFiles(certificateFiles, userEmail, `${baseFolderPath}/certificate`);
           allResults.push(...certificateResults.uploadResults);
         }
         
-        console.log('[STEP 8.8] Google Drive upload completed:', {
+        console.log('[STEP 8.8] Cloud Storage upload completed:', {
           successful: allResults.length,
           total: documents.length,
           folderStructure: baseFolderPath
         });
         
-        // Create documents array with Google Drive URLs
-        console.log('[STEP 8.9] Creating documents array with Google Drive URLs');
+        // Create documents array with Cloud Storage URLs
+        console.log('[STEP 8.9] Creating documents array with Cloud Storage URLs');
         documentsArray = allResults.map((result, index) => ({
           itemId: result.originalIndex,
           filename: result.fileName,
           fileType: 'application/pdf',
           docType: result.type,
           role: result.role,
-          googleDriveFileId: result.fileId,
-          googleDriveWebUrl: result.webUrl,
-          googleDriveDownloadUrl: result.downloadUrl,
+          cloudStorageUrl: result.writeUrl || result.url, // Use write URL for Make.com, fallback to read URL
+          cloudStorageReadUrl: result.url, // Keep read URL for reference
+          cloudStorageWriteUrl: result.writeUrl, // Store write URL separately
+          cloudStorageFileName: result.fileName,
+          cloudStorageBucket: result.bucket,
           fileSize: result.size,
           lastModified: result.lastModified
         }));
         
         sessionFolderName = baseFolderPath;
-      } catch (googleDriveError) {
-        console.error('[ERROR] Google Drive upload failed:', googleDriveError);
-        // Fallback to basic document structure
-        documentsArray = documents.map((doc, index) => ({
-          itemId: index,
-          filename: doc.file.name,
-          fileType: doc.file.type || 'application/pdf',
-          docType: doc.type,
-          role: doc.role,
-          googleDriveFileId: `error-${Date.now()}-${index}`,
-          googleDriveWebUrl: `https://example.com/error/${doc.file.name}`,
-          googleDriveDownloadUrl: `https://example.com/error/${doc.file.name}`,
-          fileSize: doc.file.size,
-          lastModified: new Date().toISOString()
-        }));
+      } catch (cloudStorageError) {
+        console.error('[ERROR] Cloud Storage upload failed:', cloudStorageError);
+        console.error('[ERROR] Error details:', {
+          message: cloudStorageError.message,
+          stack: cloudStorageError.stack,
+          name: cloudStorageError.name
+        });
         
-        sessionFolderName = `error-session-${Date.now()}`;
+        // Re-throw the error instead of hiding it with fallback
+        throw new Error(`Cloud Storage upload failed: ${cloudStorageError.message}`);
       }
     }
     
@@ -623,8 +635,11 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       filename: doc.filename,
       docType: doc.docType,
       role: doc.role,
-      googleDriveFileId: doc.googleDriveFileId,
-      googleDriveWebUrl: doc.googleDriveWebUrl
+      cloudStorageUrl: doc.cloudStorageUrl, // Write URL for Make.com
+      cloudStorageReadUrl: doc.cloudStorageReadUrl, // Read URL
+      cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // Write URL
+      cloudStorageFileName: doc.cloudStorageFileName,
+      cloudStorageBucket: doc.cloudStorageBucket
     })));
     
     // Create JSON payload for webhook
@@ -637,10 +652,11 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         documentType: formData.documentType,
         timestamp: new Date().toISOString(),
         totalFiles: documentsArray.length,
-        googleDriveSessionFolder: sessionFolderName,
+        cloudStorageSessionFolder: sessionFolderName,
         userEmail: userEmail,
         apiKey: webhookConfig.defaultApiKey,
-        key: webhookConfig.defaultApiKey
+        key: webhookConfig.defaultApiKey,
+        bucketName: 'pdf-upload-myapp' // Add bucket name for Make.com
       }
     ];
     
@@ -648,15 +664,19 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       payloadType: 'Array for Make.com iterator',
       documentsCount: documentsArray.length,
       documentType: formData.documentType,
-      googleDriveSessionFolder: sessionFolderName,
+      cloudStorageSessionFolder: sessionFolderName,
       userEmail: userEmail,
+      bucketName: 'pdf-upload-myapp',
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        googleDriveFileId: doc.googleDriveFileId,
-        googleDriveWebUrl: doc.googleDriveWebUrl
+        cloudStorageUrl: doc.cloudStorageUrl, // Write URL for Make.com
+        cloudStorageReadUrl: doc.cloudStorageReadUrl, // Read URL
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // Write URL
+        cloudStorageFileName: doc.cloudStorageFileName,
+        cloudStorageBucket: doc.cloudStorageBucket
       }))
     });
     
@@ -664,15 +684,19 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       timestamp: new Date().toISOString(),
       totalFiles: documentsArray.length,
       documentType: formData.documentType,
-      googleDriveSessionFolder: sessionFolderName,
+      cloudStorageSessionFolder: sessionFolderName,
       userEmail: userEmail,
+      bucketName: 'pdf-upload-myapp',
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        googleDriveFileId: doc.googleDriveFileId,
-        googleDriveWebUrl: doc.googleDriveWebUrl
+        cloudStorageUrl: doc.cloudStorageUrl, // Write URL for Make.com
+        cloudStorageReadUrl: doc.cloudStorageReadUrl, // Read URL
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // Write URL
+        cloudStorageFileName: doc.cloudStorageFileName,
+        cloudStorageBucket: doc.cloudStorageBucket
       }))
     });
     
@@ -681,26 +705,31 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     console.log('  documents:', webhookPayload[0].documents.length, 'items');
     console.log('  documentType:', webhookPayload[0].documentType);
     console.log('  totalFiles:', webhookPayload[0].totalFiles);
-    console.log('  oneDriveSessionFolder:', webhookPayload[0].oneDriveSessionFolder);
+    console.log('  cloudStorageSessionFolder:', webhookPayload[0].cloudStorageSessionFolder);
+    console.log('  bucketName:', webhookPayload[0].bucketName);
     console.log('  userEmail:', webhookPayload[0].userEmail);
     
     console.log('Upload request details:', {
       webhookUrl: webhookConfig.defaultUrl,
-      googleDriveSessionFolder: sessionFolderName,
+      cloudStorageSessionFolder: sessionFolderName,
       userEmail: userEmail,
+      bucketName: 'pdf-upload-myapp',
       documents: documentsArray.map(doc => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        googleDriveFileId: doc.googleDriveFileId,
-        googleDriveWebUrl: doc.googleDriveWebUrl
+        cloudStorageUrl: doc.cloudStorageUrl, // Write URL for Make.com
+        cloudStorageReadUrl: doc.cloudStorageReadUrl, // Read URL
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // Write URL
+        cloudStorageFileName: doc.cloudStorageFileName,
+        cloudStorageBucket: doc.cloudStorageBucket
       })),
       totalDocuments: documentsArray.length
     });
     
     // Continue with webhook upload
-    console.log('[STEP 10] Google Drive upload completed, sending metadata to webhook');
+    console.log('[STEP 10] Cloud Storage upload completed, sending metadata to webhook');
     
     // Check if we have the required data for webhook upload
     if (!documentsArray || documentsArray.length === 0) {
@@ -969,6 +998,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   };
 
   // Reset form
+  // eslint-disable-next-line no-unused-vars
   const resetForm = () => {
     console.log('[RESET] Resetting form to default values');
     const defaultFormData = {

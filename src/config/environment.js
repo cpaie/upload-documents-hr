@@ -20,11 +20,11 @@ const getBaseUrl = () => {
 const API_CONFIG = {
   baseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001',
   endpoints: {
-    googleDrive: {
-      upload: 'http://localhost:3001/api/googledrive/upload',
-      createFolder: 'http://localhost:3001/api/googledrive/create-folder',
-      fileInfo: 'http://localhost:3001/api/googledrive/file-info',
-      listFiles: 'http://localhost:3001/api/googledrive/files'
+    googleCloudStorage: {
+      upload: 'http://localhost:3001/api/gcs/upload',
+      fileInfo: 'http://localhost:3001/api/gcs/file-info',
+      listFiles: 'http://localhost:3001/api/gcs/files',
+      delete: 'http://localhost:3001/api/gcs/delete'
     },
     firebase: {
       upload: 'http://localhost:3001/api/firebase/upload',
@@ -54,16 +54,13 @@ const FIREBASE_CONFIG = {
   appId: process.env.REACT_APP_FIREBASE_APP_ID
 };
 
-// Google Drive Configuration - Service Account only
-const GOOGLE_DRIVE_CONFIG = {
-  serviceAccountKeyFile: process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
-                         process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
-                         './service-account-key.json',
-  // OAuth credentials are not needed for Service Account
-  clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'service-account',
-  clientSecret: process.env.REACT_APP_GOOGLE_CLIENT_SECRET || 'service-account',
-  apiKey: process.env.REACT_APP_GOOGLE_API_KEY || 'service-account',
-  redirectUri: process.env.REACT_APP_GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
+// Google Cloud Storage Configuration
+const GOOGLE_CLOUD_STORAGE_CONFIG = {
+  projectId: process.env.REACT_APP_GCS_PROJECT_ID,
+  bucketName: process.env.REACT_APP_GCS_BUCKET_NAME,
+  serviceAccountKeyFile: process.env.REACT_APP_GCS_SERVICE_ACCOUNT_KEY_FILE || './gcs-service-account-key.json',
+  // Optional: specify folder structure
+  uploadFolder: process.env.REACT_APP_GCS_UPLOAD_FOLDER || 'pdf-uploads'
 };
 
 const ONEDRIVE_CONFIG = {
@@ -76,7 +73,7 @@ export {
   API_CONFIG,
   SUPABASE_CONFIG,
   FIREBASE_CONFIG,
-  GOOGLE_DRIVE_CONFIG,
+  GOOGLE_CLOUD_STORAGE_CONFIG,
   ONEDRIVE_CONFIG
 };
 
@@ -95,6 +92,6 @@ if (isDevelopment) {
   console.log('🔧 Development Mode Detected');
   console.log('Environment Info:', ENV_INFO);
   console.log('Supabase Redirect URLs:', SUPABASE_CONFIG.redirectUrls);
-  console.log('Google Drive Redirect URI:', GOOGLE_DRIVE_CONFIG.redirectUri);
+  console.log('Google Cloud Storage Config:', GOOGLE_CLOUD_STORAGE_CONFIG);
   console.log('API Base URL:', API_CONFIG.baseUrl);
 }

@@ -1,15 +1,15 @@
-// Google Drive Service for file uploads using Service Account
+// Google Drive Service for file uploads using OAuth delegation
 import { API_CONFIG } from '../config/environment.js';
 
 class GoogleDriveService {
   constructor() {
     this.userEmail = null;
-    console.log('[GoogleDriveService] Initialized with Service Account');
+    console.log('[GoogleDriveService] Initialized with OAuth delegation');
   }
 
-  // Upload file to Google Drive via server (Service Account)
+  // Upload file to Google Drive via server (OAuth delegation)
   async uploadFile(file, userEmail, folderPath = '') {
-    console.log('[GoogleDrive] Starting file upload to Google Drive via Service Account');
+    console.log('[GoogleDrive] Starting file upload to Google Drive via OAuth delegation');
     console.log('[GoogleDrive] File details:', {
       name: file.name,
       size: file.size,
@@ -19,15 +19,43 @@ class GoogleDriveService {
     });
 
     try {
+            // Get Google access token from localStorage
+      const googleUser = JSON.parse(localStorage.getItem('googleOAuthUser') || '{}');
+      const accessToken = googleUser.accessToken; // Fixed: use accessToken directly, not identities
+
+      console.log('=== CLIENT TOKEN DEBUG START ===');
+      console.log('[GoogleDrive] Checking for Google access token:', {
+        hasGoogleUser: !!googleUser,
+        hasAccessToken: !!accessToken,
+        userEmail: googleUser.email,
+        provider: googleUser.provider,
+        accessTokenLength: accessToken ? accessToken.length : 0,
+        googleUserFull: googleUser
+      });
+      console.log('=== CLIENT TOKEN DEBUG END ===');
+
+      if (!accessToken) {
+        throw new Error('Google access token not found. Please sign in with Google again.');
+      }
+
       // Create FormData for server upload
       const formData = new FormData();
       formData.append('file', file);
       formData.append('userEmail', userEmail);
       formData.append('folderPath', folderPath || '');
+      formData.append('accessToken', accessToken);
 
-      // Upload file via server with extended timeout for large files
+      console.log('[GoogleDrive] Sending file to server with OAuth token');
+      console.log('[GoogleDrive] FormData being sent:', {
+        fileName: file.name,
+        userEmail: userEmail,
+        folderPath: folderPath || '',
+        accessTokenLength: accessToken ? accessToken.length : 0,
+        accessTokenPrefix: accessToken ? accessToken.substring(0, 20) + '...' : 'NONE'
+      });
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minutes timeout
+      const timeoutId = setTimeout(() => controller.abort(), 300000);
       
       try {
         const response = await fetch(API_CONFIG.endpoints.googleDrive.upload, {
@@ -44,7 +72,7 @@ class GoogleDriveService {
         }
 
         const result = await response.json();
-        console.log('[GoogleDrive] File uploaded successfully via Service Account:', {
+        console.log('[GoogleDrive] File uploaded successfully via OAuth delegation:', {
           fileId: result.id,
           fileName: result.name,
           originalName: result.originalName,
@@ -63,7 +91,7 @@ class GoogleDriveService {
         };
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error('[GoogleDrive] File upload failed via Service Account:', error);
+        console.error('[GoogleDrive] File upload failed via OAuth delegation:', error);
         throw error;
       }
     } catch (error) {
@@ -74,7 +102,7 @@ class GoogleDriveService {
 
   // Upload multiple files to Google Drive
   async uploadMultipleFiles(files, userEmail, folderPath = '') {
-    console.log('[GoogleDrive] Starting multiple file upload to Google Drive via Service Account');
+    console.log('[GoogleDrive] Starting multiple file upload to Google Drive via OAuth delegation');
     console.log('[GoogleDrive] Files to upload:', files.length);
 
     const uploadResults = [];
@@ -115,11 +143,18 @@ class GoogleDriveService {
     };
   }
 
-  // Create folder in Google Drive via Service Account
+  // Create folder in Google Drive via OAuth delegation
   async createFolder(folderName, userEmail, parentFolderPath = '') {
-    console.log('[GoogleDrive] Creating folder via Service Account:', folderName);
+    console.log('[GoogleDrive] Creating folder via OAuth delegation:', folderName);
     
     try {
+            const googleUser = JSON.parse(localStorage.getItem('googleOAuthUser') || '{}');
+      const accessToken = googleUser.accessToken; // Fixed: use accessToken directly
+
+      if (!accessToken) {
+        throw new Error('Google access token not found. Please sign in with Google again.');
+      }
+
       const response = await fetch(API_CONFIG.endpoints.googleDrive.createFolder, {
         method: 'POST',
         headers: {
@@ -128,7 +163,8 @@ class GoogleDriveService {
         body: JSON.stringify({
           folderName,
           userEmail,
-          parentFolderId: parentFolderPath
+          parentFolderId: parentFolderPath,
+          accessToken: accessToken
         })
       });
 
@@ -138,7 +174,7 @@ class GoogleDriveService {
       }
 
       const result = await response.json();
-      console.log('[GoogleDrive] Folder created successfully via Service Account:', result.name);
+      console.log('[GoogleDrive] Folder created successfully via OAuth delegation:', result.name);
       
       return result;
     } catch (error) {
@@ -147,12 +183,22 @@ class GoogleDriveService {
     }
   }
 
-  // Get file information from Google Drive via Service Account
+  // Get file information from Google Drive via OAuth delegation
   async getFileInfo(fileId, userEmail) {
-    console.log('[GoogleDrive] Getting file info via Service Account for:', fileId);
+    console.log('[GoogleDrive] Getting file info via OAuth delegation for:', fileId);
     
     try {
-      const response = await fetch(`${API_CONFIG.endpoints.googleDrive.fileInfo}/${fileId}`, {
+            const googleUser = JSON.parse(localStorage.getItem('googleOAuthUser') || '{}');
+      const accessToken = googleUser.accessToken; // Fixed: use accessToken directly
+
+      if (!accessToken) {
+        throw new Error('Google access token not found. Please sign in with Google again.');
+      }
+
+      const url = new URL(`${API_CONFIG.endpoints.googleDrive.fileInfo}/${fileId}`);
+      url.searchParams.append('accessToken', accessToken);
+
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -164,7 +210,7 @@ class GoogleDriveService {
       }
 
       const result = await response.json();
-      console.log('[GoogleDrive] File info retrieved successfully via Service Account');
+      console.log('[GoogleDrive] File info retrieved successfully via OAuth delegation');
       
       return result;
     } catch (error) {
@@ -173,14 +219,22 @@ class GoogleDriveService {
     }
   }
 
-  // List files in Google Drive via Service Account
+  // List files in Google Drive via OAuth delegation
   async listFiles(folderId = '', pageSize = 10) {
-    console.log('[GoogleDrive] Listing files via Service Account');
+    console.log('[GoogleDrive] Listing files via OAuth delegation');
     
     try {
+            const googleUser = JSON.parse(localStorage.getItem('googleOAuthUser') || '{}');
+      const accessToken = googleUser.accessToken; // Fixed: use accessToken directly
+
+      if (!accessToken) {
+        throw new Error('Google access token not found. Please sign in with Google again.');
+      }
+
       const url = new URL(API_CONFIG.endpoints.googleDrive.listFiles);
       if (folderId) url.searchParams.append('folderId', folderId);
       url.searchParams.append('pageSize', pageSize);
+      url.searchParams.append('accessToken', accessToken);
 
       const response = await fetch(url, {
         headers: {
@@ -194,7 +248,7 @@ class GoogleDriveService {
       }
 
       const result = await response.json();
-      console.log('[GoogleDrive] Files listed successfully via Service Account:', result.files.length);
+      console.log('[GoogleDrive] Files listed successfully via OAuth delegation:', result.files.length);
       
       return result;
     } catch (error) {

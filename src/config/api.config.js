@@ -14,6 +14,13 @@ const API_CONFIG = {
       upload: 'http://localhost:3001/api/onedrive/upload',
       createFolder: 'http://localhost:3001/api/onedrive/folder'
     },
+    googleCloudStorage: {
+      upload: 'http://localhost:3001/api/gcs/upload',
+      fileInfo: 'http://localhost:3001/api/gcs/file-info',
+      listFiles: 'http://localhost:3001/api/gcs/files',
+      delete: 'http://localhost:3001/api/gcs/delete',
+      signedUrls: 'http://localhost:3001/api/gcs/signed-urls'
+    },
     webhook: {
       upload: 'http://localhost:3001/api/webhook/upload'
     }
@@ -26,6 +33,13 @@ const API_CONFIG = {
       token: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/token`,
       upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/upload`,
       createFolder: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/folder`
+    },
+    googleCloudStorage: {
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/upload`,
+      fileInfo: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/file-info`,
+      listFiles: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/files`,
+      delete: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/delete`,
+      signedUrls: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/signed-urls`
     },
     webhook: {
       upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/webhook/upload`
@@ -48,6 +62,9 @@ export const apiConfig = {
   
   // OneDrive endpoints
   oneDrive: getCurrentConfig().oneDrive,
+  
+  // Google Cloud Storage endpoints
+  googleCloudStorage: getCurrentConfig().googleCloudStorage,
   
   // Webhook endpoints
   webhook: getCurrentConfig().webhook,

@@ -26,7 +26,7 @@ const GOOGLE_DRIVE_CONFIG = {
   clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
   clientSecret: process.env.REACT_APP_GOOGLE_CLIENT_SECRET,
   apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-  redirectUri: process.env.REACT_APP_GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
+  redirectUri: process.env.REACT_APP_GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/auth/google/callback'
 };
 
 // Initialize Google OAuth2 client
@@ -62,12 +62,19 @@ async function getGoogleDriveAccessToken() {
   }
 }
 
-// Upload file to Google Drive
-async function uploadFileToGoogleDrive(fileBuffer, fileName, userEmail, folderPath = '') {
+// Upload file to Google Drive using user's OAuth token
+async function uploadFileToGoogleDrive(fileBuffer, fileName, userEmail, folderPath = '', userAccessToken = null) {
   console.log(`[SERVER] Uploading file to Google Drive: ${fileName}`);
+  console.log(`[SERVER] Using ${userAccessToken ? 'user OAuth token' : 'NO TOKEN - ERROR'}`);
   
   try {
-    const accessToken = await getGoogleDriveAccessToken();
+    // Use user's access token - this is required for OAuth delegation
+    if (!userAccessToken) {
+      throw new Error('User access token is required for Google Drive upload. Please sign in with Google first.');
+    }
+    
+    // Set user's access token to OAuth client
+    oauth2Client.setCredentials({ access_token: userAccessToken });
     
     const timestamp = Date.now();
     
@@ -120,12 +127,19 @@ async function uploadFileToGoogleDrive(fileBuffer, fileName, userEmail, folderPa
   }
 }
 
-// Create folder in Google Drive
-async function createFolderInGoogleDrive(folderName, parentFolderId = null) {
+// Create folder in Google Drive using user's OAuth token
+async function createFolderInGoogleDrive(folderName, parentFolderId = null, userAccessToken = null) {
   console.log(`[SERVER] Creating folder in Google Drive: ${folderName}`);
+  console.log(`[SERVER] Using ${userAccessToken ? 'user OAuth token' : 'NO TOKEN - ERROR'}`);
   
   try {
-    const accessToken = await getGoogleDriveAccessToken();
+    // Use user's access token - this is required for OAuth delegation
+    if (!userAccessToken) {
+      throw new Error('User access token is required for Google Drive folder creation. Please sign in with Google first.');
+    }
+    
+    // Set user's access token to OAuth client
+    oauth2Client.setCredentials({ access_token: userAccessToken });
     
     const fileMetadata = {
       name: folderName,
@@ -146,6 +160,88 @@ async function createFolderInGoogleDrive(folderName, parentFolderId = null) {
   }
 }
 
+// Google OAuth URL endpoint
+app.get('/api/auth/google/url', async (req, res) => {
+  try {
+    console.log('[SERVER] Google OAuth URL request received');
+    
+    // Generate OAuth2 URL for frontend to redirect to
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/drive.file',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile'
+      ],
+      include_granted_scopes: true
+    });
+    
+    console.log('[SERVER] Generated Google OAuth URL');
+    res.json({ 
+      authUrl: authUrl,
+      message: 'Please redirect to this URL to authenticate with Google Drive'
+    });
+  } catch (error) {
+    console.error('[SERVER] Google OAuth URL error:', error.message);
+    res.status(500).json({
+      error: 'OAuth URL generation failed',
+      message: error.message
+    });
+  }
+});
+
+// Google OAuth callback endpoint
+app.get('/api/auth/google/callback', async (req, res) => {
+  try {
+    console.log('[SERVER] Google OAuth callback received');
+    
+    const { code } = req.query;
+    
+    if (!code) {
+      return res.redirect(`http://localhost:3000?auth_error=${encodeURIComponent('Authorization code not provided')}`);
+    }
+    
+    // Exchange code for tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    
+    console.log('[SERVER] OAuth tokens obtained successfully');
+    console.log('[SERVER] Access token available:', !!tokens.access_token);
+    
+    // Get user info using the access token
+    oauth2Client.setCredentials(tokens);
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const userInfo = await oauth2.userinfo.get();
+    
+    console.log('[SERVER] User info retrieved:', userInfo.data.email);
+    
+    // Create user object with tokens included
+    const userData = {
+      id: userInfo.data.id,
+      email: userInfo.data.email,
+      name: userInfo.data.name,
+      picture: userInfo.data.picture,
+      provider: 'google',
+      identities: [{
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        token_type: 'bearer'
+      }]
+    };
+    
+    console.log('[SERVER] Redirecting to frontend with user data');
+    
+    // Redirect to frontend with user data
+    const redirectUrl = `http://localhost:3000?auth_success=true&user=${encodeURIComponent(JSON.stringify(userData))}`;
+    res.redirect(redirectUrl);
+    
+  } catch (error) {
+    console.error('[SERVER] OAuth callback error:', error.message);
+    const redirectUrl = `http://localhost:3000?auth_error=${encodeURIComponent(error.message)}`;
+    res.redirect(redirectUrl);
+  }
+});
+
 // Token endpoint - for OAuth2 flow
 app.get('/api/googledrive/token', async (req, res) => {
   try {
@@ -155,6 +251,7 @@ app.get('/api/googledrive/token', async (req, res) => {
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: [
+        'https://www.googleapis.com/auth/drive',
         'https://www.googleapis.com/auth/drive.file',
         'https://www.googleapis.com/auth/userinfo.email',
         'https://www.googleapis.com/auth/userinfo.profile'
@@ -238,12 +335,20 @@ app.post('/api/googledrive/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file provided' });
     }
 
-    const { userEmail, folderPath } = req.body;
+    const { userEmail, folderPath, accessToken } = req.body;
     const { originalname, buffer } = req.file;
 
     console.log(`[SERVER] Processing file: ${originalname}, size: ${buffer.length} bytes, user: ${userEmail}`);
+    console.log(`[SERVER] === TOKEN DEBUG START ===`);
+    console.log(`[SERVER] Access token provided: ${!!accessToken}`);
+    console.log(`[SERVER] Access token type: ${typeof accessToken}`);
+    console.log(`[SERVER] Access token length: ${accessToken ? accessToken.length : 0}`);
+    console.log(`[SERVER] Access token prefix: ${accessToken ? accessToken.substring(0, 20) + '...' : 'NONE'}`);
+    console.log(`[SERVER] Request body keys:`, Object.keys(req.body));
+    console.log(`[SERVER] Full request body:`, req.body);
+    console.log(`[SERVER] === TOKEN DEBUG END ===`);
 
-    const result = await uploadFileToGoogleDrive(buffer, originalname, userEmail, folderPath);
+    const result = await uploadFileToGoogleDrive(buffer, originalname, userEmail, folderPath, accessToken);
     
     console.log('[SERVER] Google Drive upload completed successfully');
     res.json({
@@ -269,13 +374,15 @@ app.post('/api/googledrive/create-folder', async (req, res) => {
   try {
     console.log('[SERVER] Google Drive create folder request received');
     
-    const { folderName, parentFolderId } = req.body;
+    const { folderName, parentFolderId, accessToken } = req.body;
 
     if (!folderName) {
       return res.status(400).json({ error: 'Folder name is required' });
     }
 
-    const result = await createFolderInGoogleDrive(folderName, parentFolderId);
+    console.log(`[SERVER] Access token provided for folder creation: ${!!accessToken}`);
+
+    const result = await createFolderInGoogleDrive(folderName, parentFolderId, accessToken);
     
     console.log('[SERVER] Google Drive folder creation completed successfully');
     res.json(result);
@@ -295,7 +402,14 @@ app.get('/api/googledrive/file-info/:fileId', async (req, res) => {
     console.log('[SERVER] Google Drive file info request received');
     
     const { fileId } = req.params;
-    const accessToken = await getGoogleDriveAccessToken();
+    const { accessToken } = req.query; // Get access token from query params
+    
+    // Use user's access token if provided, otherwise fall back to server token
+    if (accessToken) {
+      oauth2Client.setCredentials({ access_token: accessToken });
+    } else {
+      await getGoogleDriveAccessToken();
+    }
 
     const response = await drive.files.get({
       fileId: fileId,
@@ -309,6 +423,46 @@ app.get('/api/googledrive/file-info/:fileId', async (req, res) => {
     console.error('[SERVER] Google Drive file info error:', error.message);
     res.status(500).json({
       error: 'Failed to get file info',
+      message: error.message
+    });
+  }
+});
+
+// List files endpoint
+app.get('/api/googledrive/files', async (req, res) => {
+  try {
+    console.log('[SERVER] Google Drive list files request received');
+    
+    const { folderId, pageSize = 10, accessToken } = req.query;
+    
+    // Use user's access token if provided, otherwise fall back to server token
+    if (accessToken) {
+      oauth2Client.setCredentials({ access_token: accessToken });
+    } else {
+      await getGoogleDriveAccessToken();
+    }
+
+    const listParams = {
+      pageSize: parseInt(pageSize),
+      fields: 'files(id,name,webViewLink,webContentLink,size,modifiedTime,mimeType)'
+    };
+
+    if (folderId) {
+      listParams.q = `'${folderId}' in parents`;
+    }
+
+    const response = await drive.files.list(listParams);
+
+    console.log('[SERVER] Google Drive files listed successfully:', response.data.files.length);
+    res.json({
+      files: response.data.files || [],
+      total: response.data.files?.length || 0
+    });
+
+  } catch (error) {
+    console.error('[SERVER] Google Drive list files error:', error.message);
+    res.status(500).json({
+      error: 'Failed to list files',
       message: error.message
     });
   }
