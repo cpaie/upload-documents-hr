@@ -153,7 +153,7 @@ function App() {
       // Return empty cleanup function
       return () => {};
     }
-  }, []);
+  }, [user]);
 
   const handleUserAuthenticated = (user) => {
     console.log('[App] handleUserAuthenticated called with:', user);

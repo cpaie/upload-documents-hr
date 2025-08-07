@@ -208,4 +208,5 @@ class GoogleCloudStorageService {
   }
 }
 
-export default new GoogleCloudStorageService();
+const instance = new GoogleCloudStorageService();
+export default instance;

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { supabase } from './SubabaseClient.js';
-import { SUPABASE_CONFIG } from '../config/environment.js';
 import './SignupPopup.css';
 
 const SignupPopup = ({ isOpen, onClose, onUserAuthenticated }) => {
