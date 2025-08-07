@@ -531,7 +531,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     if (sessionId) {
       fetchDocuments();
     }
-  }, [sessionId, refreshCount, fetchDocuments]);
+  }, [sessionId, refreshCount]);
 
   if (loading) {
     return (
