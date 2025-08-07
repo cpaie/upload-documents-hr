@@ -2,7 +2,7 @@
   "name": "pdf-upload-react",
   "version": "0.1.0",
   "private": true,
-  "homepage": ".",
+  "homepage": "",
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=10.0.0"
