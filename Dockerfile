@@ -7,8 +7,8 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install --only=production
+# Install dependencies (use npm ci for faster, reliable builds)
+RUN npm ci --omit=dev
 
 # Copy the server file
 COPY server-gcs.js ./
