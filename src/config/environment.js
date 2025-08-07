@@ -43,7 +43,7 @@ const SUPABASE_CONFIG = {
   anonKey: process.env.REACT_APP_SUPABASE_ANON_KEY,
   serviceRoleKey: process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY,
   redirectUrls: {
-    google: process.env.REACT_APP_GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
+    google: process.env.REACT_APP_GOOGLE_REDIRECT_URI || (isDevelopment ? 'http://localhost:3000/auth/google/callback' : 'https://coruscating-puppy-056d4c.netlify.app/auth/google/callback')
   }
 };
 
@@ -68,7 +68,7 @@ const GOOGLE_CLOUD_STORAGE_CONFIG = {
 const ONEDRIVE_CONFIG = {
   clientId: process.env.REACT_APP_ONEDRIVE_CLIENT_ID,
   clientSecret: process.env.REACT_APP_ONEDRIVE_CLIENT_SECRET,
-  redirectUri: process.env.REACT_APP_ONEDRIVE_REDIRECT_URI || 'http://localhost:3000/auth/onedrive/callback'
+  redirectUri: process.env.REACT_APP_ONEDRIVE_REDIRECT_URI || (isDevelopment ? 'http://localhost:3000/auth/onedrive/callback' : 'https://coruscating-puppy-056d4c.netlify.app/auth/onedrive/callback')
 };
 
 export {
