@@ -77,9 +77,10 @@ try {
     throw new Error('Missing required environment variables: GCS_PROJECT_ID and/or GCS_BUCKET_NAME');
   }
   
+  // Use environment authentication (works on Cloud Run)
   storage = new Storage({
     projectId: projectId,
-    keyFilename: serviceAccountKeyPath,
+    // keyFilename not needed - Cloud Run uses workload identity
   });
   
   bucket = storage.bucket(bucketName);

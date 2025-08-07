@@ -13,6 +13,9 @@ RUN npm ci --omit=dev
 # Copy the server file
 COPY server-gcs.js ./
 
+# Service account key will be provided via Cloud Run environment variables
+# No need to copy the key file - Cloud Run will use workload identity
+
 # Expose the port the app runs on
 EXPOSE 8080
 
