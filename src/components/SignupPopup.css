@@ -204,20 +204,20 @@
   font-size: 14px;
 }
 
-/* Azure Login Styles */
-.azure-login-container {
+/* Google Login Styles */
+.google-login-container {
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 10px 0;
 }
 
-.azure-login-button {
+.google-login-button {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: #0078d4;
+  background: #4285f4;
   color: white;
   border: none;
   padding: 12px 24px;
@@ -230,15 +230,15 @@
   direction: rtl;
 }
 
-.azure-login-button:hover {
-  background: #106ebe;
+.google-login-button:hover {
+  background: #3367d6;
 }
 
-.azure-login-button:active {
-  background: #005a9e;
+.google-login-button:active {
+  background: #2a56c6;
 }
 
-.azure-icon {
+.google-icon {
   width: 20px;
   height: 20px;
   flex-shrink: 0;

@@ -9,7 +9,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [error, setError] = useState(null);
   const [refreshCount, setRefreshCount] = useState(0);
   const [summary, setSummary] = useState(null);
-  const [isEditing, setIsEditing] = useState(true); // Start in edit mode
+  const [isEditing] = useState(true); // Start in edit mode
   const [editableDocuments, setEditableDocuments] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -48,15 +48,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     setSaveError(null);
   };
 
-  const handleFieldEdit = (documentId, field, value) => {
-    setEditableDocuments(prev => 
-      prev.map(doc => 
-        doc.id === documentId 
-          ? { ...doc, [field]: value }
-          : doc
-      )
-    );
-  };
+
 
   const handleExtractedDataEdit = (documentId, key, value) => {
     setEditableDocuments(prev => 
@@ -435,25 +427,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     }
   };
 
-  const handleDownload = async (documentId, fileName) => {
-    console.log('[DocumentsView] Downloading document:', documentId, fileName);
-    
-    try {
-      const blob = await documentsService.downloadDocument(documentId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName || `document_${documentId}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      console.log('[DocumentsView] Download completed');
-    } catch (err) {
-      console.error('[DocumentsView] Download error:', err);
-      alert('Download failed: ' + err.message);
-    }
-  };
+
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -557,7 +531,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     if (sessionId) {
       fetchDocuments();
     }
-  }, [sessionId, refreshCount]);
+  }, [sessionId, refreshCount, fetchDocuments]);
 
   if (loading) {
     return (

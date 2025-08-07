@@ -5,10 +5,10 @@ import './HebrewForm.css';
 
 // OneDrive configuration
 const ONEDRIVE_CONFIG = {
-  clientId: '0e489b27-1a2f-48c0-a772-63bc61e6a8a9',
-      clientSecret: process.env.REACT_APP_AZURE_CLIENT_SECRET || '',
-  tenantId: '22fde68e-d975-441b-a414-73ff55b29824',
-  userEmail: 'dudy@cpaie.co.il' // The user whose OneDrive we're uploading to
+  clientId: process.env.REACT_APP_AZURE_CLIENT_ID || '0e489b27-1a2f-48c0-a772-63bc61e6a8a9',
+  clientSecret: process.env.REACT_APP_AZURE_CLIENT_SECRET || '',
+  tenantId: process.env.REACT_APP_AZURE_TENANT_ID || '22fde68e-d975-441b-a414-73ff55b29824',
+  userEmail: process.env.REACT_APP_USER_EMAIL || 'dudy@cpaie.co.il' // The user whose OneDrive we're uploading to
 };
 
 const HebrewForm = ({ onDataFetched, user, initialData }) => {

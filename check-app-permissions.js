@@ -1,11 +1,13 @@
 // Check App Permissions
 // Run with: node check-app-permissions.js
 
-// Configuration
+// Configuration - Load from environment variables
+require('dotenv').config();
+
 const config = {
-  clientId: '0e489b27-1a2f-48c0-a772-63bc61e6a8a9',
-  clientSecret: '0-L8Q~tSkOPV8~WFHDMin_gik~vcakutuLJYua1P',
-  tenantId: '22fde68e-d975-441b-a414-73ff55b29824'
+  clientId: process.env.REACT_APP_AZURE_CLIENT_ID || '0e489b27-1a2f-48c0-a772-63bc61e6a8a9',
+  clientSecret: process.env.REACT_APP_AZURE_CLIENT_SECRET || '0-L8Q~tSkOPV8~WFHDMin_gik~vcakutuLJYua1P',
+  tenantId: process.env.REACT_APP_AZURE_TENANT_ID || '22fde68e-d975-441b-a414-73ff55b29824'
 };
 
 // Get Access Token

@@ -16,4 +16,4 @@ export const webhookConfig = {
     'Content-Type': 'multipart/form-data',
     'x-make-apikey': process.env.REACT_APP_WEBHOOK_API_KEY
   }
-}; 
+};

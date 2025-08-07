@@ -8,12 +8,13 @@ yarn-error.log*
 build/
 dist/
 
-# Environment variables
+# Environment variables - ALL VERSIONS
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.backup
+.env.production
+.env.development
+.env.test
 
 # IDE files
 .vscode/
@@ -60,9 +61,46 @@ jspm_packages/
 
 # Yarn Integrity file
 .yarn-integrity 
-GitInstaller.exe
-package-lock.json
-*.cache
 
-# Test output files
+# Executable files
+*.exe
+*.msi
+*.dmg
+*.pkg
+GitInstaller.exe
+
+# Cache files
+*.cache
+.npm
+
+# Test output files with sensitive data
 Testoutput.json
+*_id_rows*.json
+*_cert_id_rows*.json
+
+# Package lock files (optional - remove if you want to track them)
+package-lock.json
+
+# Firebase
+.firebase/
+
+# Temporary files
+*.tmp
+*.temp
+.cursorignore
+test-azure-auth.js
+test-onedrive-simple.js
+test-google-drive.js
+test-oauth2.js
+test-server-simple.js
+server-fixed.js
+server-simple.js
+service-account-key.json
+google api key/famous-store-468216-p6-d663477e72c1.json
+env.config
+env.gcs.example
+famous-store-468216-p6-4420b09e22e2.json
+env.example.complete
+env.production.example
+gcs-service-account-key.json
+test-config.js

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import HebrewForm from './HebrewForm';
+
 import DataGrid from './DataGrid';
 import PDFUploadForm from './PDFUploadForm';
 import DocumentsView from './DocumentsView';
@@ -15,14 +15,7 @@ const MainApp = ({ user }) => {
   console.log('[MainApp] Current view:', currentView);
   console.log('[MainApp] Current SessionId:', currentSessionId);
 
-  const handleDataFetched = (data, formData = null) => {
-    console.log('[MainApp] Data fetched:', data);
-    setFetchedData(data);
-    if (formData) {
-      setLastFormData(formData); // Store the form data for potential resend
-    }
-    setCurrentView('data');
-  };
+
 
   const handleSessionIdReceived = (sessionId, responseData, formData, uploadedFiles) => {
     console.log('[MainApp] SessionId received:', sessionId);
