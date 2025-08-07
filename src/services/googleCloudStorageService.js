@@ -4,6 +4,11 @@ import { API_CONFIG } from '../config/environment.js';
 class GoogleCloudStorageService {
   constructor() {
     console.log('[GoogleCloudStorage] Service initialized');
+    console.log('[GoogleCloudStorage] Environment check:');
+    console.log('[GoogleCloudStorage] NODE_ENV:', process.env.NODE_ENV);
+    console.log('[GoogleCloudStorage] Is Production:', process.env.NODE_ENV === 'production');
+    console.log('[GoogleCloudStorage] API Config:', API_CONFIG);
+    console.log('[GoogleCloudStorage] Upload URL:', API_CONFIG.endpoints.googleCloudStorage.upload);
   }
 
   // Upload single file to Google Cloud Storage
@@ -25,6 +30,7 @@ class GoogleCloudStorageService {
       formData.append('folderPath', folderPath || '');
 
       console.log('[GoogleCloudStorage] Sending file to server');
+      console.log('[GoogleCloudStorage] Upload URL:', API_CONFIG.endpoints.googleCloudStorage.upload);
 
       // Upload file via server with extended timeout for large files
       const controller = new AbortController();

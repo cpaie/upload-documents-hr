@@ -11,9 +11,36 @@ const { Storage } = require('@google-cloud/storage');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Environment detection
+const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+const isProduction = process.env.NODE_ENV === 'production';
+
+console.log('[SERVER] Environment Detection:');
+console.log('[SERVER] NODE_ENV:', process.env.NODE_ENV);
+console.log('[SERVER] Is Development:', isDevelopment);
+console.log('[SERVER] Is Production:', isProduction);
+console.log('[SERVER] Port:', PORT);
+
 // CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000', 
+  'http://127.0.0.1:3000',
+  process.env.FRONTEND_URL, // Production frontend URL
+  process.env.REACT_APP_FRONTEND_URL // Alternative env var
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('[SERVER] CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -375,18 +402,23 @@ app.delete('/api/gcs/delete/:fileName', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
+  const serverUrl = isProduction ? `https://your-api-domain.com` : `http://localhost:${PORT}`;
+  
   console.log(`🚀 Google Cloud Storage server running on port ${PORT}`);
-  console.log(`📁 Health check: http://localhost:${PORT}/api/health`);
-  console.log(`📤 Upload endpoint: http://localhost:${PORT}/api/gcs/upload`);
-  console.log(`🔗 Generate signed URLs: http://localhost:${PORT}/api/gcs/signed-urls`);
-  console.log(`📋 List files: http://localhost:${PORT}/api/gcs/files`);
-  console.log(`🗑️  Delete file: http://localhost:${PORT}/api/gcs/delete/:fileName`);
+  console.log(`🌍 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+  console.log(`📁 Health check: ${serverUrl}/api/health`);
+  console.log(`📤 Upload endpoint: ${serverUrl}/api/gcs/upload`);
+  console.log(`🔗 Generate signed URLs: ${serverUrl}/api/gcs/signed-urls`);
+  console.log(`📋 List files: ${serverUrl}/api/gcs/files`);
+  console.log(`🗑️  Delete file: ${serverUrl}/api/gcs/delete/:fileName`);
   
   if (bucket) {
     console.log(`✅ Connected to bucket: ${bucket.name}`);
   } else {
     console.log(`❌ Google Cloud Storage not configured`);
   }
+  
+  console.log(`🔒 CORS allowed origins:`, allowedOrigins);
 });
 
 module.exports = app;

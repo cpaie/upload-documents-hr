@@ -21,18 +21,19 @@ const API_CONFIG = {
   baseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001',
   endpoints: {
     googleCloudStorage: {
-      upload: 'http://localhost:3001/api/gcs/upload',
-      fileInfo: 'http://localhost:3001/api/gcs/file-info',
-      listFiles: 'http://localhost:3001/api/gcs/files',
-      delete: 'http://localhost:3001/api/gcs/delete'
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/upload`,
+      fileInfo: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/file-info`,
+      listFiles: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/files`,
+      delete: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/delete`,
+      signedUrls: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/signed-urls`
     },
     firebase: {
-      upload: 'http://localhost:3001/api/firebase/upload',
-      createFolder: 'http://localhost:3001/api/firebase/create-folder'
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/firebase/upload`,
+      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/firebase/create-folder`
     },
     oneDrive: {
-      upload: 'http://localhost:3001/api/onedrive/upload',
-      createFolder: 'http://localhost:3001/api/onedrive/create-folder'
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/onedrive/upload`,
+      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/onedrive/create-folder`
     }
   }
 };
@@ -94,4 +95,9 @@ if (isDevelopment) {
   console.log('Supabase Redirect URLs:', SUPABASE_CONFIG.redirectUrls);
   console.log('Google Cloud Storage Config:', GOOGLE_CLOUD_STORAGE_CONFIG);
   console.log('API Base URL:', API_CONFIG.baseUrl);
+} else {
+  console.log('🚀 Production Mode Detected');
+  console.log('Environment Info:', ENV_INFO);
+  console.log('API Base URL:', API_CONFIG.baseUrl);
+  console.log('Google Cloud Storage Config:', GOOGLE_CLOUD_STORAGE_CONFIG);
 }

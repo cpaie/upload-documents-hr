@@ -4,6 +4,13 @@
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Environment detection logging
+console.log('[API Config] Environment Detection:');
+console.log('[API Config] NODE_ENV:', process.env.NODE_ENV);
+console.log('[API Config] Is Development:', isDevelopment);
+console.log('[API Config] Is Production:', isProduction);
+console.log('[API Config] REACT_APP_API_BASE_URL:', process.env.REACT_APP_API_BASE_URL);
+
 // Base API URLs
 const API_CONFIG = {
   // Development - local server
@@ -116,5 +123,12 @@ export const getEnvironmentInfo = () => {
     nodeEnv: process.env.NODE_ENV
   };
 };
+
+// Final configuration logging
+console.log('[API Config] Final Configuration:');
+console.log('[API Config] Environment:', apiConfig.environment);
+console.log('[API Config] Base URL:', apiConfig.baseUrl);
+console.log('[API Config] GCS Upload URL:', apiConfig.googleCloudStorage.upload);
+console.log('[API Config] GCS Signed URLs URL:', apiConfig.googleCloudStorage.signedUrls);
 
 export default apiConfig; 
