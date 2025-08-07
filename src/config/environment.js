@@ -114,6 +114,15 @@ if (isDevelopment) {
 } else {
   console.log('🚀 Production Mode Detected');
   console.log('Environment Info:', ENV_INFO);
+  console.log('🔍 Raw Environment Variables:');
+  console.log('  REACT_APP_SUPABASE_URL:', process.env.REACT_APP_SUPABASE_URL);
+  console.log('  REACT_APP_SUPABASE_ANON_KEY:', process.env.REACT_APP_SUPABASE_ANON_KEY ? 'SET (length: ' + process.env.REACT_APP_SUPABASE_ANON_KEY.length + ')' : 'NOT SET');
+  console.log('  REACT_APP_GCS_PROJECT_ID:', process.env.REACT_APP_GCS_PROJECT_ID);
+  console.log('  REACT_APP_GCS_BUCKET_NAME:', process.env.REACT_APP_GCS_BUCKET_NAME);
+  console.log('Supabase Config:', {
+    url: SUPABASE_CONFIG.url ? 'SET' : 'NOT SET',
+    anonKey: SUPABASE_CONFIG.anonKey ? 'SET' : 'NOT SET'
+  });
   console.log('API Base URL:', API_CONFIG.baseUrl ? 'SET' : 'NOT SET');
   console.log('Google Cloud Storage Config:', {
     projectId: GOOGLE_CLOUD_STORAGE_CONFIG.projectId ? 'SET' : 'NOT SET',
