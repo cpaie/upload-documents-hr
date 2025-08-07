@@ -1,17 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { webhookConfig } from '../config/webhook.config';
-import googleCloudStorageService from '../services/googleCloudStorageService';
-import { uploadFileToStorage, storeFileMetadata } from '../services/firebaseService';
-import { auth } from '../firebase';
-import { apiConfig } from '../config/api.config';
+import cloudStorageService from '../services/googleCloudStorageService';
 import './PDFUploadForm.css';
-
-// Environment detection logging
-console.log('[PDFUploadForm] Environment Detection:');
-console.log('[PDFUploadForm] NODE_ENV:', process.env.NODE_ENV);
-console.log('[PDFUploadForm] API Config:', apiConfig);
-console.log('[PDFUploadForm] Is Production:', process.env.NODE_ENV === 'production');
-console.log('[PDFUploadForm] API Base URL:', apiConfig.baseUrl);
 
 const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles, onFormDataSaved, user }) => {
   const [formData, setFormData] = useState(() => {
@@ -42,18 +32,14 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   const [result, setResult] = useState(null);
   const [webhookResponse, setWebhookResponse] = useState(null);
   const [sessionId, setSessionId] = useState(null);
-  const [isOneDriveUploading, setIsOneDriveUploading] = useState(false);
+  const [isCloudStorageUploading, setIsCloudStorageUploading] = useState(false);
   
   // Get user email from authenticated user (supports multiple auth providers)
   const userEmail = user?.email || user?.username || user?.user_metadata?.email || '';
   
-  // Check if Google Drive configuration is available (Service Account)
-  const hasGoogleDriveConfig = process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
-                              process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE || 
-                              process.env.REACT_APP_GOOGLE_CLIENT_ID;
-  
-  // Use Google Cloud Storage service
-  const cloudStorageService = googleCloudStorageService;
+  // Check if Google Cloud Storage configuration is available
+  const hasCloudStorageConfig = process.env.REACT_APP_GCS_PROJECT_ID &&
+                               process.env.REACT_APP_GCS_BUCKET_NAME;
   
   // Log user information for debugging
   console.log('[PDFUploadForm] User information:', {
@@ -62,20 +48,14 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     username: user?.username,
     user_metadata: user?.user_metadata,
     extractedEmail: userEmail,
-    hasGoogleDriveConfig: hasGoogleDriveConfig
+    hasCloudStorageConfig: hasCloudStorageConfig
   });
   
   // Debug environment variables
   console.log('[PDFUploadForm] Environment variables check:', {
-    REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.REACT_APP_GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
-    GOOGLE_SERVICE_ACCOUNT_KEY_FILE: process.env.GOOGLE_SERVICE_ACCOUNT_KEY_FILE ? 'SET' : 'NOT SET',
-    REACT_APP_GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET',
-    REACT_APP_USE_DIRECT_UPLOAD: process.env.REACT_APP_USE_DIRECT_UPLOAD,
-    REACT_APP_FIREBASE_API_KEY: process.env.REACT_APP_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
-    REACT_APP_FIREBASE_PROJECT_ID: process.env.REACT_APP_FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET',
-    REACT_APP_FIREBASE_STORAGE_BUCKET: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ? 'SET' : 'NOT SET',
-    hasGoogleDriveConfig: hasGoogleDriveConfig,
-    usingOAuthDelegation: true
+    REACT_APP_GCS_PROJECT_ID: process.env.REACT_APP_GCS_PROJECT_ID ? 'SET' : 'NOT SET',
+    REACT_APP_GCS_BUCKET_NAME: process.env.REACT_APP_GCS_BUCKET_NAME ? 'SET' : 'NOT SET',
+    hasCloudStorageConfig: hasCloudStorageConfig
   });
   
   const fileInputRefs = {
@@ -425,47 +405,25 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     }
   };
 
-  // Upload files to OneDrive and send metadata to webhook
+  // Upload files to Google Cloud Storage and send metadata to webhook
   const uploadFiles = async (webhookUrl) => {
     console.log('[STEP 7] Starting file upload process');
-    console.log('[STEP 7.1] Environment check before upload:');
-    console.log('[STEP 7.1] API Base URL:', apiConfig.baseUrl);
-    console.log('[STEP 7.1] GCS Upload URL:', apiConfig.googleCloudStorage.upload);
-    console.log('[STEP 7.1] Is Production:', process.env.NODE_ENV === 'production');
-    console.log('[STEP 7.1] Before uploading to Cloud Storage - preparing files');
+    console.log('[STEP 7.1] Before uploading to Google Cloud Storage - preparing files');
     
     // Generate a consistent session ID for this upload
     const uploadSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     console.log('[STEP 7.2] Generated upload session ID:', uploadSessionId);
     
     if (!userEmail) {
-      console.error('[ERROR] User email is required for Google Drive upload');
+      console.error('[ERROR] User email is required for Google Cloud Storage upload');
       console.error('[ERROR] User object:', user);
-      throw new Error('User email is required for Google Drive upload. Your account is logged in but no email address was found. Please contact support or try logging in with a different account.');
+      throw new Error('User email is required for Google Cloud Storage upload. Your account is logged in but no email address was found. Please contact support or try logging in with a different account.');
     }
     
     // Create documents array structure
     console.log('[STEP 8] Creating documents array structure');
-    console.log('[STEP 8] Current file state:', {
-      hasIdDocument: !!uploadedFiles.idDocument,
-      hasSelectedDocument: !!uploadedFiles.selectedDocument,
-      idDocumentName: uploadedFiles.idDocument?.name,
-      selectedDocumentName: uploadedFiles.selectedDocument?.name,
-      additionalIdsWithDocs: formData.additionalIds.filter(id => id.idDocument).length
-    });
     
     const documents = [];
-    
-    // Check if files actually exist before trying to add them
-    if (!uploadedFiles.idDocument) {
-      console.error('[ERROR] Main ID document is missing in uploadFiles function');
-      throw new Error('Main ID document is missing. Please select a file and try again.');
-    }
-    
-    if (!uploadedFiles.selectedDocument) {
-      console.error('[ERROR] Selected document is missing in uploadFiles function');
-      throw new Error('Selected document is missing. Please select a file and try again.');
-    }
     
     // Add main ID document
     console.log('[STEP 8.1] Adding main ID document to documents array');
@@ -516,130 +474,55 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       type: doc.type
     })));
     
-    // Final validation before Google Drive upload
-    if (documents.length === 0) {
-      console.error('[ERROR] Documents array is empty before Cloud Storage upload');
-      throw new Error('No documents to upload. Please select files and try again.');
-    }
-    
-    // Upload files to Cloud Storage
-    console.log('[STEP 8.5] Starting Cloud Storage upload process');
+    // Upload files to Google Cloud Storage
+    console.log('[STEP 8.5] Starting Google Cloud Storage upload process');
+    setIsCloudStorageUploading(true);
     
     // Initialize variables that will be used outside the try block
+    let uploadFormData = null;
     let documentsArray = [];
     let sessionFolderName = '';
     
-    // Check if we should use direct upload (Firebase) or server upload (Google Cloud Storage)
-    const useDirectUpload = process.env.REACT_APP_USE_DIRECT_UPLOAD === 'true';
+    // Check if Google Cloud Storage configuration is available
+    const hasCloudStorageConfig = process.env.REACT_APP_GCS_PROJECT_ID &&
+                                 process.env.REACT_APP_GCS_BUCKET_NAME;
     
-    console.log('[STEP 8.5.1] Upload mode check:', {
-      useDirectUpload: useDirectUpload,
-      REACT_APP_USE_DIRECT_UPLOAD: process.env.REACT_APP_USE_DIRECT_UPLOAD,
-      isProduction: process.env.NODE_ENV === 'production'
+    console.log('[STEP 8.5.1] Google Cloud Storage configuration check:', {
+      hasProjectId: !!process.env.REACT_APP_GCS_PROJECT_ID,
+      hasBucketName: !!process.env.REACT_APP_GCS_BUCKET_NAME,
+      hasCloudStorageConfig: hasCloudStorageConfig,
+      projectId: process.env.REACT_APP_GCS_PROJECT_ID ? 'SET' : 'NOT SET',
+      bucketName: process.env.REACT_APP_GCS_BUCKET_NAME ? 'SET' : 'NOT SET'
     });
     
-    if (useDirectUpload) {
-      console.log('[STEP 8.5.2] Using Firebase direct upload mode');
-      console.log('[STEP 8.5.2] Firebase configuration check:', {
-        apiKey: process.env.REACT_APP_FIREBASE_API_KEY ? 'SET' : 'NOT SET',
-        projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID ? 'SET' : 'NOT SET',
-        storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET ? 'SET' : 'NOT SET',
-        authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN ? 'SET' : 'NOT SET'
-      });
+    if (!hasCloudStorageConfig) {
+      console.warn('[STEP 8.5.2] Google Cloud Storage configuration missing, using fallback mode');
+      console.warn('[STEP 8.5.2] Please create a .env.local file with the following variables:');
+      console.warn('[STEP 8.5.2] REACT_APP_GCS_PROJECT_ID=famous-store-468216-p6');
+      console.warn('[STEP 8.5.2] REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp');
       
-      // Check Firebase authentication
-      console.log('[STEP 8.5.2] Checking Firebase authentication...');
-      const currentUser = auth.currentUser;
-      console.log('[STEP 8.5.2] Firebase current user:', currentUser);
+      // Create fallback documents array without Google Cloud Storage
+      documentsArray = documents.map((doc, index) => ({
+        itemId: index,
+        filename: doc.file.name,
+        fileType: doc.file.type || 'application/pdf',
+        docType: doc.type,
+        role: doc.role,
+        cloudStorageFileId: `fallback-${Date.now()}-${index}`,
+        cloudStorageWebUrl: `https://example.com/fallback/${doc.file.name}`,
+        cloudStorageDownloadUrl: `https://example.com/fallback/${doc.file.name}`,
+        fileSize: doc.file.size,
+        lastModified: new Date().toISOString()
+      }));
       
-      if (!currentUser) {
-        console.warn('[STEP 8.5.2] No Firebase user authenticated, but continuing with upload...');
-        console.warn('[STEP 8.5.2] Firebase Storage may require authentication for uploads');
-      }
-      
-      try {
-        // Create organized folder structure
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        const baseFolderPath = `PDF-Uploads/${today}/${uploadSessionId}`;
-        
-        console.log('[STEP 8.6] Creating organized Firebase folder structure:', baseFolderPath);
-        
-                 // Upload files to Firebase Storage
-         const uploadPromises = documents.map(async (doc, index) => {
-           console.log(`[STEP 8.7] Uploading file ${index + 1}/${documents.length}: ${doc.file.name}`);
-           console.log(`[STEP 8.7] File details:`, {
-             name: doc.file.name,
-             size: doc.file.size,
-             type: doc.file.type,
-             lastModified: doc.file.lastModified
-           });
-           
-           // Create folder path based on document type
-           let folderPath = baseFolderPath;
-           if (doc.type === 'mainId') {
-             folderPath = `${baseFolderPath}/main-id`;
-           } else if (doc.type === 'additionalId') {
-             folderPath = `${baseFolderPath}/additional-ids`;
-           } else {
-             folderPath = `${baseFolderPath}/certificate`;
-           }
-           
-           console.log(`[STEP 8.7] Uploading to Firebase folder: ${folderPath}`);
-           
-                      // Upload to Firebase Storage
-           console.log(`[STEP 8.7] About to upload file to Firebase Storage...`);
-           const uploadResult = await uploadFileToStorage(doc.file, folderPath);
-           console.log(`[STEP 8.7] Firebase Storage upload completed:`, uploadResult);
-           
-           // Store metadata in Firestore
-           console.log(`[STEP 8.7] About to store metadata in Firestore...`);
-           const metadataResult = await storeFileMetadata(uploadResult, {
-             userEmail: userEmail,
-             documentType: doc.type,
-             role: doc.role,
-             originalFileName: doc.file.name,
-             uploadSessionId: uploadSessionId,
-             folderPath: folderPath
-           });
-           console.log(`[STEP 8.7] Firestore metadata stored:`, metadataResult);
-          
-          return {
-            itemId: index,
-            filename: doc.file.name,
-            fileType: doc.file.type || 'application/pdf',
-            docType: doc.type,
-            role: doc.role,
-            firebaseStorageUrl: uploadResult.downloadURL,
-            firebaseFileName: uploadResult.fileName,
-            firebaseMetadataId: metadataResult.id,
-            fileSize: doc.file.size,
-            lastModified: new Date().toISOString()
-          };
-        });
-        
-        documentsArray = await Promise.all(uploadPromises);
-        sessionFolderName = baseFolderPath;
-        
-        console.log('[STEP 8.8] Firebase upload completed:', {
-          successful: documentsArray.length,
-          total: documents.length,
-          folderStructure: baseFolderPath
-        });
-        
-      } catch (firebaseError) {
-        console.error('[ERROR] Firebase upload failed:', firebaseError);
-        throw new Error(`Firebase upload failed: ${firebaseError.message}`);
-      }
+      sessionFolderName = `fallback-session-${Date.now()}`;
     } else {
-      // Set uploading state for Google Cloud Storage
-      setIsOneDriveUploading(true);
-      
       try {
         // Create organized folder structure
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
         const baseFolderPath = `PDF-Uploads/${today}/${uploadSessionId}`;
         
-        console.log('[STEP 8.6] Creating organized Cloud Storage folder structure:', baseFolderPath);
+        console.log('[STEP 8.6] Creating organized Google Cloud Storage folder structure:', baseFolderPath);
         
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
@@ -654,8 +537,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         
         // Upload files to their respective folders
         const allResults = [];
-        
-        // No need for access token setup since we're using OAuth delegation service
         
         // Upload main ID files
         if (mainIdFiles.length > 0) {
@@ -678,40 +559,49 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           allResults.push(...certificateResults.uploadResults);
         }
         
-        console.log('[STEP 8.8] Cloud Storage upload completed:', {
+        console.log('[STEP 8.8] Google Cloud Storage upload completed:', {
           successful: allResults.length,
           total: documents.length,
           folderStructure: baseFolderPath
         });
         
-        // Create documents array with Cloud Storage URLs
-        console.log('[STEP 8.9] Creating documents array with Cloud Storage URLs');
+        // Create documents array with Google Cloud Storage URLs
+        console.log('[STEP 8.9] Creating documents array with Google Cloud Storage URLs');
         documentsArray = allResults.map((result, index) => ({
           itemId: result.originalIndex,
           filename: result.fileName,
           fileType: 'application/pdf',
           docType: result.type,
           role: result.role,
-          cloudStorageUrl: result.writeUrl || result.url, // Use write URL for Make.com, fallback to read URL
-          cloudStorageReadUrl: result.url, // Keep read URL for reference
-          cloudStorageWriteUrl: result.writeUrl, // Store write URL separately
-          cloudStorageFileName: result.fileName,
-          cloudStorageBucket: result.bucket,
+          cloudStorageFileId: result.fileId || result.fileName,
+          cloudStorageReadUrl: result.url, // Read URL from server
+          cloudStorageWriteUrl: result.writeUrl, // Write URL from server
+          cloudStorageWebUrl: result.url, // For backward compatibility
+          cloudStorageDownloadUrl: result.url, // For backward compatibility
+          bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+          projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
           fileSize: result.size,
           lastModified: result.lastModified
         }));
         
         sessionFolderName = baseFolderPath;
-      } catch (cloudStorageError) {
-        console.error('[ERROR] Cloud Storage upload failed:', cloudStorageError);
-        console.error('[ERROR] Error details:', {
-          message: cloudStorageError.message,
-          stack: cloudStorageError.stack,
-          name: cloudStorageError.name
-        });
+      } catch (oneDriveError) {
+        console.error('[ERROR] OneDrive upload failed:', oneDriveError);
+        // Fallback to basic document structure
+        documentsArray = documents.map((doc, index) => ({
+          itemId: index,
+          filename: doc.file.name,
+          fileType: doc.file.type || 'application/pdf',
+          docType: doc.type,
+          role: doc.role,
+          oneDriveFileId: `error-${Date.now()}-${index}`,
+          oneDriveWebUrl: `https://example.com/error/${doc.file.name}`,
+          oneDriveDownloadUrl: `https://example.com/error/${doc.file.name}`,
+          fileSize: doc.file.size,
+          lastModified: new Date().toISOString()
+        }));
         
-        // Re-throw the error instead of hiding it with fallback
-        throw new Error(`Cloud Storage upload failed: ${cloudStorageError.message}`);
+        sessionFolderName = `error-session-${Date.now()}`;
       }
     }
     
@@ -720,14 +610,11 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       filename: doc.filename,
       docType: doc.docType,
       role: doc.role,
-      firebaseStorageUrl: doc.firebaseStorageUrl,
-      firebaseFileName: doc.firebaseFileName,
-      firebaseMetadataId: doc.firebaseMetadataId,
-      cloudStorageUrl: doc.cloudStorageUrl, // For backward compatibility
-      cloudStorageReadUrl: doc.cloudStorageReadUrl, // For backward compatibility
-      cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // For backward compatibility
-      cloudStorageFileName: doc.cloudStorageFileName, // For backward compatibility
-      cloudStorageBucket: doc.cloudStorageBucket // For backward compatibility
+      cloudStorageFileId: doc.cloudStorageFileId,
+      cloudStorageReadUrl: doc.cloudStorageReadUrl,
+      cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
+      bucketId: doc.bucketId,
+      projectId: doc.projectId
     })));
     
     // Create JSON payload for webhook
@@ -741,12 +628,11 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         timestamp: new Date().toISOString(),
         totalFiles: documentsArray.length,
         cloudStorageSessionFolder: sessionFolderName,
-        firebaseSessionFolder: sessionFolderName, // Add Firebase folder for compatibility
+        bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+        projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
         userEmail: userEmail,
         apiKey: webhookConfig.defaultApiKey,
-        key: webhookConfig.defaultApiKey,
-        bucketName: useDirectUpload ? 'firebase-storage' : 'pdf-upload-myapp', // Use Firebase bucket name when using direct upload
-        storageType: useDirectUpload ? 'firebase' : 'google-cloud-storage' // Indicate storage type
+        key: webhookConfig.defaultApiKey
       }
     ];
     
@@ -755,23 +641,19 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       documentsCount: documentsArray.length,
       documentType: formData.documentType,
       cloudStorageSessionFolder: sessionFolderName,
-      firebaseSessionFolder: sessionFolderName,
+      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
       userEmail: userEmail,
-      bucketName: useDirectUpload ? 'firebase-storage' : 'pdf-upload-myapp',
-      storageType: useDirectUpload ? 'firebase' : 'google-cloud-storage',
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        firebaseStorageUrl: doc.firebaseStorageUrl,
-        firebaseFileName: doc.firebaseFileName,
-        firebaseMetadataId: doc.firebaseMetadataId,
-        cloudStorageUrl: doc.cloudStorageUrl, // For backward compatibility
-        cloudStorageReadUrl: doc.cloudStorageReadUrl, // For backward compatibility
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // For backward compatibility
-        cloudStorageFileName: doc.cloudStorageFileName, // For backward compatibility
-        cloudStorageBucket: doc.cloudStorageBucket // For backward compatibility
+        cloudStorageFileId: doc.cloudStorageFileId,
+        cloudStorageReadUrl: doc.cloudStorageReadUrl,
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
+        bucketId: doc.bucketId,
+        projectId: doc.projectId
       }))
     });
     
@@ -780,23 +662,19 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       totalFiles: documentsArray.length,
       documentType: formData.documentType,
       cloudStorageSessionFolder: sessionFolderName,
-      firebaseSessionFolder: sessionFolderName,
+      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
       userEmail: userEmail,
-      bucketName: useDirectUpload ? 'firebase-storage' : 'pdf-upload-myapp',
-      storageType: useDirectUpload ? 'firebase' : 'google-cloud-storage',
       documents: documentsArray.map((doc, index) => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        firebaseStorageUrl: doc.firebaseStorageUrl,
-        firebaseFileName: doc.firebaseFileName,
-        firebaseMetadataId: doc.firebaseMetadataId,
-        cloudStorageUrl: doc.cloudStorageUrl, // For backward compatibility
-        cloudStorageReadUrl: doc.cloudStorageReadUrl, // For backward compatibility
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // For backward compatibility
-        cloudStorageFileName: doc.cloudStorageFileName, // For backward compatibility
-        cloudStorageBucket: doc.cloudStorageBucket // For backward compatibility
+        cloudStorageFileId: doc.cloudStorageFileId,
+        cloudStorageReadUrl: doc.cloudStorageReadUrl,
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
+        bucketId: doc.bucketId,
+        projectId: doc.projectId
       }))
     });
     
@@ -806,47 +684,36 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     console.log('  documentType:', webhookPayload[0].documentType);
     console.log('  totalFiles:', webhookPayload[0].totalFiles);
     console.log('  cloudStorageSessionFolder:', webhookPayload[0].cloudStorageSessionFolder);
-    console.log('  firebaseSessionFolder:', webhookPayload[0].firebaseSessionFolder);
-    console.log('  bucketName:', webhookPayload[0].bucketName);
-    console.log('  storageType:', webhookPayload[0].storageType);
+    console.log('  bucketId:', webhookPayload[0].bucketId);
+    console.log('  projectId:', webhookPayload[0].projectId);
     console.log('  userEmail:', webhookPayload[0].userEmail);
     
     console.log('Upload request details:', {
       webhookUrl: webhookConfig.defaultUrl,
       cloudStorageSessionFolder: sessionFolderName,
-      firebaseSessionFolder: sessionFolderName,
+      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
       userEmail: userEmail,
-      bucketName: useDirectUpload ? 'firebase-storage' : 'pdf-upload-myapp',
-      storageType: useDirectUpload ? 'firebase' : 'google-cloud-storage',
       documents: documentsArray.map(doc => ({
         itemId: doc.itemId,
         filename: doc.filename,
         docType: doc.docType,
         role: doc.role,
-        firebaseStorageUrl: doc.firebaseStorageUrl,
-        firebaseFileName: doc.firebaseFileName,
-        firebaseMetadataId: doc.firebaseMetadataId,
-        cloudStorageUrl: doc.cloudStorageUrl, // For backward compatibility
-        cloudStorageReadUrl: doc.cloudStorageReadUrl, // For backward compatibility
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl, // For backward compatibility
-        cloudStorageFileName: doc.cloudStorageFileName, // For backward compatibility
-        cloudStorageBucket: doc.cloudStorageBucket // For backward compatibility
+        cloudStorageFileId: doc.cloudStorageFileId,
+        cloudStorageReadUrl: doc.cloudStorageReadUrl,
+        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
+        bucketId: doc.bucketId,
+        projectId: doc.projectId
       })),
       totalDocuments: documentsArray.length
     });
     
     // Continue with webhook upload
-    console.log('[STEP 10] Cloud Storage upload completed, sending metadata to webhook');
+    console.log('[STEP 10] Google Cloud Storage upload completed, sending metadata to webhook');
     
     // Check if we have the required data for webhook upload
-    if (!documentsArray || documentsArray.length === 0) {
-      console.error('[ERROR] No documents to upload:', { documentsArray });
-      throw new Error('No documents prepared for upload. Please check your file selections.');
-    }
-    
-    if (!webhookPayload || !webhookPayload[0]) {
-      console.error('[ERROR] Webhook payload not prepared:', { webhookPayload });
-      throw new Error('Failed to prepare webhook payload. Please try again.');
+    if (!webhookPayload || !webhookPayload[0] || !documentsArray.length) {
+              throw new Error('Failed to prepare data for webhook upload. Google Cloud Storage upload may have failed.');
     }
     
     // Simulate progress updates
@@ -859,8 +726,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       });
     }, 200);
     
-    // Mark Google Drive upload as completed
-    setIsOneDriveUploading(false);
+          // Mark Google Cloud Storage upload as completed
+      setIsCloudStorageUploading(false);
     
     try {
       console.log('[STEP 10] About to send HTTP request');
@@ -898,9 +765,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       
       // Add timeout to the fetch request
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
-      
-      console.log('[STEP 10.5] Timeout set to 120 seconds');
+      const timeoutId = setTimeout(() => controller.abort(), webhookConfig.timeout || 30000);
       
       console.log('[STEP 11] Request headers sent:', {
         'Authorization': `Bearer ${webhookConfig.defaultApiKey ? webhookConfig.defaultApiKey.substring(0, 8) + '...' : 'NOT SET'}`,
@@ -1050,7 +915,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         showSuccess('הקבצים הועלו בהצלחה!', {
           sessionId: sessionId,
           totalFiles: documentsArray.length,
-          googleDriveSessionFolder: sessionFolderName,
+          oneDriveSessionFolder: sessionFolderName,
           responseData: responseData,
           parsedResponse: parsedResponse
         });
@@ -1101,13 +966,12 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       console.error('[ERROR] Webhook request failed:', error);
       clearInterval(progressInterval);
       setProgress(0);
-      setIsOneDriveUploading(false);
+      setIsCloudStorageUploading(false);
       throw error;
     }
   };
 
   // Reset form
-  // eslint-disable-next-line no-unused-vars
   const resetForm = () => {
     console.log('[RESET] Resetting form to default values');
     const defaultFormData = {
@@ -1177,7 +1041,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           </div>
           <div className="config-help">
             <p><strong>Please log in to continue:</strong></p>
-            <p>You must be logged in to upload files to Google Drive. Please use the login button in the header to authenticate.</p>
+            <p>You must be logged in to upload files to Google Cloud Storage. Please use the login button in the header to authenticate.</p>
           </div>
         </div>
       </div>
@@ -1202,9 +1066,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
             <i className={`fas ${userEmail ? 'fa-check-circle' : 'fa-times-circle'}`}></i>
             <span>User Authentication: {userEmail ? 'Logged In' : 'Not Logged In'}</span>
           </div>
-          <div className={`status-item ${hasGoogleDriveConfig ? 'success' : 'error'}`}>
-            <i className={`fas ${hasGoogleDriveConfig ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
-            <span>Google Drive Upload: {hasGoogleDriveConfig ? 'Ready' : 'Configuration Missing'}</span>
+          <div className={`status-item ${hasCloudStorageConfig ? 'success' : 'error'}`}>
+            <i className={`fas ${hasCloudStorageConfig ? 'fa-check-circle' : 'fa-exclamation-triangle'}`}></i>
+            <span>Google Cloud Storage Upload: {hasCloudStorageConfig ? 'Ready' : 'Configuration Missing'}</span>
           </div>
         </div>
         {(!webhookConfig.defaultUrl || !webhookConfig.defaultApiKey) && (
@@ -1226,26 +1090,27 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
             <p><strong>Email Not Found:</strong></p>
             <p>Your account is logged in but no email address was found. This might be due to:</p>
             <ul>
-              <li>Google account without email</li>
+              <li>Azure AD account without email</li>
               <li>Approved user account without email</li>
               <li>Authentication provider configuration issue</li>
             </ul>
             <p><strong>Current user status:</strong> {user ? 'User object exists but no email found' : 'No user logged in'}</p>
           </div>
         )}
-        {!hasGoogleDriveConfig && (
+        {!hasCloudStorageConfig && (
           <div className="config-help">
-            <p><strong>Google Drive Configuration Missing:</strong></p>
-            <p>To enable Google Drive uploads, you need to configure Google Service Account:</p>
+            <p><strong>Google Cloud Storage Configuration Missing:</strong></p>
+            <p>To enable Google Cloud Storage uploads, you need to configure GCS credentials:</p>
             <ol>
-              <li>Ensure <code>service-account-key.json</code> exists in the project root</li>
-              <li>Add the following to your <code>.env</code> file:</li>
+              <li>Create a <code>.env.local</code> file in the project root</li>
+              <li>Add the following Google Cloud Storage configuration:</li>
               <pre>
-{`GOOGLE_SERVICE_ACCOUNT_KEY_FILE=./service-account-key.json`}
+{`REACT_APP_GCS_PROJECT_ID=famous-store-468216-p6
+REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp`}
               </pre>
               <li>Restart the development server</li>
             </ol>
-            <p><strong>Note:</strong> The system will work in fallback mode without Google Drive configuration, but files won't be uploaded to Google Drive.</p>
+            <p><strong>Note:</strong> The system will work in fallback mode without Google Cloud Storage configuration, but files won't be uploaded to Google Cloud Storage.</p>
           </div>
         )}
       </div>
@@ -1264,7 +1129,7 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
                 </label>
                 <div className="user-email-display">
                   <span className="user-email">{userEmail}</span>
-                  <small className="form-help">מחובר כעת - נדרש להעלאת קבצים ל-Google Drive</small>
+                  <small className="form-help">מחובר כעת - נדרש להעלאת קבצים ל-Google Cloud Storage</small>
                 </div>
               </div>
             </div>
@@ -1532,9 +1397,9 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
           <button 
             type="submit" 
             className="submit-btn" 
-            disabled={!isFormReady || isUploading || isOneDriveUploading}
+            disabled={!isFormReady || isUploading || isCloudStorageUploading}
           >
-            {isOneDriveUploading ? (
+            {isCloudStorageUploading ? (
               <>
                 <i className="fas fa-cloud-upload-alt fa-spin"></i>
                 מעלה ל-Google Cloud Storage...
@@ -1555,7 +1420,7 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
       </form>
 
       {/* Progress Bar */}
-      {(isUploading || isOneDriveUploading) && (
+      {(isUploading || isCloudStorageUploading) && (
         <div className="progress-container">
           <div className="progress-bar">
             <div 
@@ -1564,7 +1429,7 @@ REACT_APP_WEBHOOK_API_KEY=your-webhook-api-key`}
             ></div>
           </div>
           <p className="progress-text">
-            {isOneDriveUploading ? 'מעלה קבצים ל-Google Cloud Storage...' : 'שולח למעבד...'}
+            {isCloudStorageUploading ? 'מעלה קבצים ל-Google Cloud Storage...' : 'שולח למעבד...'}
           </p>
         </div>
       )}

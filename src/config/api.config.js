@@ -35,21 +35,21 @@ const API_CONFIG = {
   
   // Production - deployed server
   production: {
-    baseUrl: process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com',
+    baseUrl: process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app',
     oneDrive: {
-      token: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/token`,
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/upload`,
-      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/onedrive/folder`
+      token: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/onedrive/token`,
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/onedrive/upload`,
+      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/onedrive/folder`
     },
     googleCloudStorage: {
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/upload`,
-      fileInfo: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/file-info`,
-      listFiles: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/files`,
-      delete: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/delete`,
-      signedUrls: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/gcs/signed-urls`
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/gcs/upload`,
+      fileInfo: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/gcs/file-info`,
+      listFiles: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/gcs/files`,
+      delete: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/gcs/delete`,
+      signedUrls: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/gcs/signed-urls`
     },
     webhook: {
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://your-api-domain.com'}/api/webhook/upload`
+      upload: `${process.env.REACT_APP_API_BASE_URL || 'https://pdfupload-server-181115428363.me-west1.run.app'}/api/webhook/upload`
     }
   }
 };

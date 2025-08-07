@@ -18,22 +18,22 @@ const getBaseUrl = () => {
 
 // Environment configuration
 const API_CONFIG = {
-  baseUrl: process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001',
+  baseUrl: process.env.REACT_APP_API_BASE_URL,
   endpoints: {
     googleCloudStorage: {
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/upload`,
-      fileInfo: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/file-info`,
-      listFiles: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/files`,
-      delete: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/delete`,
-      signedUrls: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/gcs/signed-urls`
+      upload: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/gcs/upload` : null,
+      fileInfo: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/gcs/file-info` : null,
+      listFiles: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/gcs/files` : null,
+      delete: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/gcs/delete` : null,
+      signedUrls: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/gcs/signed-urls` : null
     },
     firebase: {
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/firebase/upload`,
-      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/firebase/create-folder`
+      upload: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/firebase/upload` : null,
+      createFolder: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/firebase/create-folder` : null
     },
     oneDrive: {
-      upload: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/onedrive/upload`,
-      createFolder: `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:3001'}/api/onedrive/create-folder`
+      upload: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/onedrive/upload` : null,
+      createFolder: process.env.REACT_APP_API_BASE_URL ? `${process.env.REACT_APP_API_BASE_URL}/api/onedrive/create-folder` : null
     }
   }
 };
@@ -41,6 +41,7 @@ const API_CONFIG = {
 const SUPABASE_CONFIG = {
   url: process.env.REACT_APP_SUPABASE_URL,
   anonKey: process.env.REACT_APP_SUPABASE_ANON_KEY,
+  serviceRoleKey: process.env.REACT_APP_SUPABASE_SERVICE_ROLE_KEY,
   redirectUrls: {
     google: process.env.REACT_APP_GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback'
   }
@@ -92,12 +93,30 @@ export const ENV_INFO = {
 if (isDevelopment) {
   console.log('🔧 Development Mode Detected');
   console.log('Environment Info:', ENV_INFO);
-  console.log('Supabase Redirect URLs:', SUPABASE_CONFIG.redirectUrls);
-  console.log('Google Cloud Storage Config:', GOOGLE_CLOUD_STORAGE_CONFIG);
-  console.log('API Base URL:', API_CONFIG.baseUrl);
+  console.log('🔍 Raw Environment Variables:');
+  console.log('  REACT_APP_SUPABASE_URL:', process.env.REACT_APP_SUPABASE_URL);
+  console.log('  REACT_APP_SUPABASE_ANON_KEY:', process.env.REACT_APP_SUPABASE_ANON_KEY ? 'SET (length: ' + process.env.REACT_APP_SUPABASE_ANON_KEY.length + ')' : 'NOT SET');
+  console.log('  REACT_APP_GCS_PROJECT_ID:', process.env.REACT_APP_GCS_PROJECT_ID);
+  console.log('  REACT_APP_GCS_BUCKET_NAME:', process.env.REACT_APP_GCS_BUCKET_NAME);
+  console.log('Supabase Config:', {
+    url: SUPABASE_CONFIG.url ? 'SET' : 'NOT SET',
+    anonKey: SUPABASE_CONFIG.anonKey ? 'SET' : 'NOT SET'
+  });
+  console.log('Google Cloud Storage Config:', {
+    projectId: GOOGLE_CLOUD_STORAGE_CONFIG.projectId ? 'SET' : 'NOT SET',
+    bucketName: GOOGLE_CLOUD_STORAGE_CONFIG.bucketName ? 'SET' : 'NOT SET'
+  });
+  console.log('API Base URL:', API_CONFIG.baseUrl ? 'SET' : 'NOT SET');
+  console.log('Firebase Config:', {
+    apiKey: FIREBASE_CONFIG.apiKey ? 'SET' : 'NOT SET',
+    projectId: FIREBASE_CONFIG.projectId ? 'SET' : 'NOT SET'
+  });
 } else {
   console.log('🚀 Production Mode Detected');
   console.log('Environment Info:', ENV_INFO);
-  console.log('API Base URL:', API_CONFIG.baseUrl);
-  console.log('Google Cloud Storage Config:', GOOGLE_CLOUD_STORAGE_CONFIG);
+  console.log('API Base URL:', API_CONFIG.baseUrl ? 'SET' : 'NOT SET');
+  console.log('Google Cloud Storage Config:', {
+    projectId: GOOGLE_CLOUD_STORAGE_CONFIG.projectId ? 'SET' : 'NOT SET',
+    bucketName: GOOGLE_CLOUD_STORAGE_CONFIG.bucketName ? 'SET' : 'NOT SET'
+  });
 }

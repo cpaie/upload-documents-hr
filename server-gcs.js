@@ -9,7 +9,7 @@ require('dotenv').config();
 const { Storage } = require('@google-cloud/storage');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 // Environment detection
 const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
@@ -25,6 +25,7 @@ console.log('[SERVER] Port:', PORT);
 const allowedOrigins = [
   'http://localhost:3000', 
   'http://127.0.0.1:3000',
+  'https://upload-documents-hr.web.app', // Firebase Hosting URL
   process.env.FRONTEND_URL, // Production frontend URL
   process.env.REACT_APP_FRONTEND_URL // Alternative env var
 ].filter(Boolean); // Remove undefined values
@@ -339,6 +340,46 @@ app.get('/api/gcs/files', async (req, res) => {
     console.error('[SERVER] List files error:', error.message);
     res.status(500).json({
       error: 'Failed to list files',
+      message: error.message
+    });
+  }
+});
+
+// Upload file endpoint
+app.post('/api/gcs/upload', upload.single('file'), async (req, res) => {
+  try {
+    console.log('[SERVER] File upload request received');
+    
+    if (!bucket) {
+      return res.status(500).json({ error: 'Google Cloud Storage not configured' });
+    }
+    
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file provided' });
+    }
+    
+    const { userEmail, folderPath = '' } = req.body;
+    
+    console.log('[SERVER] Upload details:');
+    console.log('[SERVER] File name:', req.file.originalname);
+    console.log('[SERVER] File size:', req.file.size);
+    console.log('[SERVER] User email:', userEmail);
+    console.log('[SERVER] Folder path:', folderPath);
+    
+    const result = await uploadFileToGCS(
+      req.file.buffer,
+      req.file.originalname,
+      userEmail,
+      folderPath
+    );
+    
+    console.log('[SERVER] ✅ File uploaded successfully');
+    res.json(result);
+    
+  } catch (error) {
+    console.error('[SERVER] Upload error:', error.message);
+    res.status(500).json({
+      error: 'Failed to upload file',
       message: error.message
     });
   }

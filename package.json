@@ -2,6 +2,10 @@
   "name": "pdf-upload-react",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "dependencies": {
     "@google-cloud/storage": "^7.16.0",
     "@supabase/supabase-js": "^2.53.0",
@@ -20,7 +24,7 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "set \"REACT_APP_API_BASE_URL=https://pdfupload-server-181115428363.me-west1.run.app\" && set \"REACT_APP_SUPABASE_URL=https://jupbjbcskoetisooirza.supabase.co\" && set \"REACT_APP_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1cGJqYmNza29ldGlzb29pcnphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE0ODQxNTMsImV4cCI6MjA2NzA2MDE1M30.X72Grh5C77xXcSpQGrv5Zu-TBmrmDttpN7Jy3mPcDqA\" && set \"REACT_APP_GCS_PROJECT_ID=famous-store-468216-p6\" && set \"REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp\" && set \"REACT_APP_WEBHOOK_URL=https://hook.us2.make.com/tssfm57l0d0ngxyipitd4q2ulqi6kl09\" && set \"REACT_APP_WEBHOOK_API_KEY=Kf7Z1u8vP9QmR3xA2tS4nY6bW5oL0eJ1gH9cD7pF4qM2rV8yX6zU5kN3aB1iC7\" && react-scripts start",
     "server": "node server-gcs.js",
     "server:old": "node server.js",
     "dev": "concurrently \"npm run server\" \"npm run start\"",
@@ -31,7 +35,10 @@
     "start:prod": "NODE_ENV=production react-scripts start",
     "server:prod": "NODE_ENV=production node server-gcs.js",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "test:config": "node test-config.js",
+    "eject": "react-scripts eject",
+    "docker:build": "docker build -t pdfupload-server .",
+    "docker:run": "docker run -p 8080:8080 pdfupload-server"
   },
   "eslintConfig": {
     "extends": [

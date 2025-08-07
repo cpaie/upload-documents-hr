@@ -126,23 +126,33 @@ function App() {
     getSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[App] Supabase auth state change:', event, session?.user);
-        
-        // IMPORTANT: Don't overwrite Google OAuth user with Supabase
-        if (user && user.provider === 'google') {
-          console.log('[App] Keeping Google OAuth user, ignoring Supabase auth change');
-          return;
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          console.log('[App] Supabase auth state change:', event, session?.user);
+          
+          // IMPORTANT: Don't overwrite Google OAuth user with Supabase
+          if (user && user.provider === 'google') {
+            console.log('[App] Keeping Google OAuth user, ignoring Supabase auth change');
+            return;
+          }
+          
+          console.log('[App] Setting user from Supabase auth change');
+          setUser(session?.user || null);
+          setLoading(false);
         }
-        
-        console.log('[App] Setting user from Supabase auth change');
-        setUser(session?.user || null);
-        setLoading(false);
-      }
-    );
+      );
 
-    return () => subscription.unsubscribe();
+      return () => {
+        if (subscription && typeof subscription.unsubscribe === 'function') {
+          subscription.unsubscribe();
+        }
+      };
+    } catch (error) {
+      console.warn('[App] Could not set up Supabase auth listener:', error.message);
+      // Return empty cleanup function
+      return () => {};
+    }
   }, []);
 
   const handleUserAuthenticated = (user) => {
@@ -155,7 +165,11 @@ function App() {
     try {
       // Sign out from Supabase if it's a Supabase user
       if (user && !user.provider) {
-        await supabase.auth.signOut();
+        try {
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.warn('[App] Could not sign out from Supabase:', error.message);
+        }
       }
       
       // Sign out from Service Account if it's a service account user
