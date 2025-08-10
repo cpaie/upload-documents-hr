@@ -48,8 +48,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     setSaveError(null);
   };
 
-
-
   const handleExtractedDataEdit = (documentId, key, value) => {
     setEditableDocuments(prev => 
       prev.map(doc => 
@@ -426,8 +424,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       setSaving(false);
     }
   };
-
-
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
