@@ -467,9 +467,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const getCertTypeName = (certType) => {
     switch (certType) {
       case 'incorporation':
-        return 'עוסק מורשה';
+        return 'התאגדות';
       case 'authorization':
-        return 'עוסק פטור';
+        return 'עוסק מורשה';
       case 'exemption':
         return 'עוסק פטור';
       default:
