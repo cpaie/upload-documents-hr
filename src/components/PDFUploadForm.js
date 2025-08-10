@@ -57,6 +57,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   }, [formData, uploadedFiles, onFormDataSaved]);
 
   // Set original data when coming from DocumentsView
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (cameFromDocumentsView && originalFormData === null && originalUploadedFiles === null) {
       if (savedFormData && savedUploadedFiles) {
@@ -112,7 +113,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     } else {
       setHasChanges(false);
     }
-  }, [formData, uploadedFiles, originalFormData, originalUploadedFiles, cameFromDocumentsView, formData.documentType, formData.mainIdRole, formData.additionalIds, uploadedFiles.idDocument, uploadedFiles.selectedDocument]);
+  }, []);
 
   // Handle form field changes
   const handleInputChange = (field, value) => {
