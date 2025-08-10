@@ -81,6 +81,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   }, [cameFromDocumentsView, savedFormData, savedUploadedFiles]); // Removed formData and uploadedFiles from dependencies
 
   // Check for changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (originalFormData && originalUploadedFiles && cameFromDocumentsView) {
       // Compare form data more carefully
@@ -1128,7 +1129,6 @@ REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp`}
                  <div className="form-actions">
            {(() => {
              const shouldShowBackButton = cameFromDocumentsView && !hasChanges;
-             const buttonText = shouldShowBackButton ? 'חזרה לעדכון פרטים' : 'שלח מסמכים';
              
              return (
                <button 
