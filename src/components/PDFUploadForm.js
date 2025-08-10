@@ -81,8 +81,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     }
   }, [cameFromDocumentsView, savedFormData, savedUploadedFiles]); // Removed formData and uploadedFiles from dependencies
 
-  // Check for changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // Check for changes whenever form contents or uploaded files change
   useEffect(() => {
     if (originalFormData && originalUploadedFiles && cameFromDocumentsView) {
       // Compare form data more carefully
@@ -113,7 +112,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     } else {
       setHasChanges(false);
     }
-  }, []);
+  }, [formData, uploadedFiles, originalFormData, originalUploadedFiles, cameFromDocumentsView]);
 
   // Handle form field changes
   const handleInputChange = (field, value) => {
