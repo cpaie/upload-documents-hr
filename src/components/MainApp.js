@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-
 import DataGrid from './DataGrid';
 import PDFUploadForm from './PDFUploadForm';
 import DocumentsView from './DocumentsView';
@@ -60,7 +59,6 @@ const MainApp = ({ user }) => {
     if (lastFormData) {
       // Go back to form and trigger resend
       setCurrentView('form');
-      // We'll need to pass this data to HebrewForm
     } else {
       console.warn('[DEV] No previous form data available for resend');
     }

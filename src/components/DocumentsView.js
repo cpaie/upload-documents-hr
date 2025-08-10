@@ -136,7 +136,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             }
             console.log('[DocumentsView] Inserted new ID record');
           }
-        } else if (doc.type === 'Certificate Document' || doc.type === 'incorporation' || doc.type === 'certificate') {
+        } else if (doc.type === 'Certificate Document' || doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption') {
           console.log('[DocumentsView] Saving certificate document data:', {
             SessionId: sessionId,
             CompanyNameHeb: extractedData.CompanyNameHeb,
@@ -262,7 +262,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             }
             console.log('[DocumentsView] Inserted new ID record for approval');
           }
-        } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'certificate') {
+        } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption') {
           console.log('[DocumentsView] Updating certificate document for approval:', document.id, 'Type:', typeof document.id);
           
           // Check if this document has a Supabase ID (meaning it exists in the database)
@@ -376,7 +376,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           }
           console.log('[DocumentsView] Inserted new ID record');
         }
-      } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'certificate') {
+      } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption') {
         console.log('[DocumentsView] Updating certificate document:', document.id);
         
         // Check if this document has a Supabase ID (meaning it exists in the database)
@@ -464,6 +464,19 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     }
   };
 
+  const getCertTypeName = (certType) => {
+    switch (certType) {
+      case 'incorporation':
+        return 'התאגדות';
+      case 'authorization':
+        return 'עוסק מורשה';
+      case 'exemption':
+        return 'עוסק פטור';
+      default:
+        return certType;
+    }
+  };
+
   const renderExtractedData = (document) => {
     const data = document.extractedData;
     if (!data) return null;
@@ -486,7 +499,11 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                        key === 'Role' ? 'תפקיד' :
                        key === 'IdType' ? 'סוג תעודה' :
                        key === 'ValidUntil' ? 'תוקף עד' :
+                       key === 'cert_type' ? 'סוג המסמך' :
                        key;
+      
+      // Convert cert_type value to Hebrew display name
+      const displayValue = key === 'cert_type' ? getCertTypeName(value) : value;
 
       if (isEditing) {
         // Edit mode - show input field
@@ -496,7 +513,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             <input
               type="text"
               className="field-input"
-              value={String(value)}
+              value={String(displayValue)}
               onChange={(e) => handleExtractedDataEdit(document.id, key, e.target.value)}
               dir={isHebrew ? 'rtl' : 'ltr'}
             />
@@ -507,7 +524,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         return (
           <div key={key} className={`data-field ${isHebrew ? 'hebrew-text' : ''}`}>
             <span className="field-label">{fieldName}:</span>
-            <span className="field-value">{String(value)}</span>
+            <span className="field-value">{String(displayValue)}</span>
           </div>
         );
       }

@@ -526,7 +526,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
         const additionalIdFiles = documents.filter(doc => doc.type === 'additionalId');
-        const certificateFiles = documents.filter(doc => doc.type === 'incorporation' || doc.type === 'certificate');
+        const certificateFiles = documents.filter(doc => doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption');
         
         console.log('[STEP 8.6.1] Files organized by type:', {
           mainId: mainIdFiles.length,
@@ -624,7 +624,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       {
         documents: documentsArray,
         documentType: formData.documentType,
-        cert_type: formData.documentType, // Add cert_type for Supabase table
+        cert_type: formData.documentType, // Add cert_type field for Supabase
         timestamp: new Date().toISOString(),
         totalFiles: documentsArray.length,
         cloudStorageSessionFolder: sessionFolderName,
@@ -640,7 +640,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       payloadType: 'Array for Make.com iterator',
       documentsCount: documentsArray.length,
       documentType: formData.documentType,
-      cert_type: formData.documentType, // Added for Supabase table
+      cert_type: formData.documentType,
       cloudStorageSessionFolder: sessionFolderName,
       bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
       projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
@@ -662,7 +662,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       timestamp: new Date().toISOString(),
       totalFiles: documentsArray.length,
       documentType: formData.documentType,
-      cert_type: formData.documentType, // Added for Supabase table
+      cert_type: formData.documentType,
       cloudStorageSessionFolder: sessionFolderName,
       bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
       projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
@@ -684,7 +684,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     console.log('[STEP 9.1] JSON payload details:');
     console.log('  documents:', webhookPayload[0].documents.length, 'items');
     console.log('  documentType:', webhookPayload[0].documentType);
-    console.log('  cert_type:', webhookPayload[0].cert_type); // Added for Supabase table
+    console.log('  cert_type:', webhookPayload[0].cert_type);
     console.log('  totalFiles:', webhookPayload[0].totalFiles);
     console.log('  cloudStorageSessionFolder:', webhookPayload[0].cloudStorageSessionFolder);
     console.log('  bucketId:', webhookPayload[0].bucketId);
@@ -745,7 +745,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           payloadType: 'Array for Make.com iterator',
           documentsCount: webhookPayload[0].documents.length,
           documentType: webhookPayload[0].documentType,
-          cert_type: webhookPayload[0].cert_type, // Added for Supabase table
           totalFiles: webhookPayload[0].totalFiles,
           oneDriveSessionFolder: webhookPayload[0].oneDriveSessionFolder,
           userEmail: webhookPayload[0].userEmail
@@ -991,9 +990,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       case 'incorporation':
         return 'התאגדות';
       case 'authorization':
-        return 'מורשה';
+        return 'עוסק מורשה';
       case 'exemption':
-        return 'פטור';
+        return 'עוסק פטור';
       default:
         return type;
     }
