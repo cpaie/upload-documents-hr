@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { documentsService } from '../services/documentsService';
 import { supabase } from './SubabaseClient.js';
 import './DocumentsView.css';
@@ -14,7 +14,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     console.log('[DocumentsView] Fetching documents for SessionId:', sessionId);
     setLoading(true);
     setError(null);
@@ -35,7 +35,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sessionId]);
 
   const handleRefresh = () => {
     console.log('[DocumentsView] Refreshing documents');
@@ -47,8 +47,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     setEditableDocuments(documents.map(doc => ({ ...doc })));
     setSaveError(null);
   };
-
-
 
   const handleExtractedDataEdit = (documentId, key, value) => {
     setEditableDocuments(prev => 
@@ -426,8 +424,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       setSaving(false);
     }
   };
-
-
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
