@@ -136,7 +136,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             }
             console.log('[DocumentsView] Inserted new ID record');
           }
-        } else if (doc.type === 'Certificate Document' || doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption' || doc.type === 'certificate') {
+        } else if (doc.type === 'Certificate Document' || doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption') {
           console.log('[DocumentsView] Saving certificate document data:', {
             SessionId: sessionId,
             CompanyNameHeb: extractedData.CompanyNameHeb,
@@ -262,7 +262,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             }
             console.log('[DocumentsView] Inserted new ID record for approval');
           }
-        } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption' || document.type === 'certificate') {
+        } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption') {
           console.log('[DocumentsView] Updating certificate document for approval:', document.id, 'Type:', typeof document.id);
           
           // Check if this document has a Supabase ID (meaning it exists in the database)
@@ -376,7 +376,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           }
           console.log('[DocumentsView] Inserted new ID record');
         }
-      } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption' || document.type === 'certificate') {
+      } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption') {
         console.log('[DocumentsView] Updating certificate document:', document.id);
         
         // Check if this document has a Supabase ID (meaning it exists in the database)

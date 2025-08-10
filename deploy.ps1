@@ -123,7 +123,7 @@ function Check-Status {
 
 # Function to show logs
 function Show-Logs {
-    Write-Host "📋 Recent Backend Logs:" -ForegroundColor Blue
+    Write-Host "Recent Backend Logs:" -ForegroundColor Blue
     gcloud logs read --service=$BackendService --limit=10 --format="table(timestamp,severity,textPayload)"
 }
 
@@ -166,4 +166,4 @@ switch ($Command) {
 }
 
 Write-Host ""
-Write-Host "🎉 Deployment script completed!" -ForegroundColor Green
+Write-Host "Deployment script completed!" -ForegroundColor Green
