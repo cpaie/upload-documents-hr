@@ -3,11 +3,10 @@ import { webhookConfig } from '../config/webhook.config';
 import cloudStorageService from '../services/googleCloudStorageService';
 import './PDFUploadForm.css';
 
-const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles, onFormDataSaved, user }) => {
+const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles, onFormDataSaved, user, cameFromDocumentsView, currentSessionId }) => {
   const [formData, setFormData] = useState(() => {
     // Initialize with saved data if available, otherwise use defaults
     if (savedFormData) {
-      console.log('[PDFUploadForm] Restoring saved form data:', savedFormData);
       return savedFormData;
     }
     return {
@@ -19,7 +18,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   const [uploadedFiles, setUploadedFiles] = useState(() => {
     // Initialize with saved files if available, otherwise use defaults
     if (savedUploadedFiles) {
-      console.log('[PDFUploadForm] Restoring saved uploaded files:', savedUploadedFiles);
       return savedUploadedFiles;
     }
     return {
@@ -33,6 +31,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   const [webhookResponse, setWebhookResponse] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [isCloudStorageUploading, setIsCloudStorageUploading] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [originalFormData, setOriginalFormData] = useState(null);
+  const [originalUploadedFiles, setOriginalUploadedFiles] = useState(null);
   
   // Get user email from authenticated user (supports multiple auth providers)
   const userEmail = user?.email || user?.username || user?.user_metadata?.email || '';
@@ -41,22 +42,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   const hasCloudStorageConfig = process.env.REACT_APP_GCS_PROJECT_ID &&
                                process.env.REACT_APP_GCS_BUCKET_NAME;
   
-  // Log user information for debugging
-  console.log('[PDFUploadForm] User information:', {
-    user: user,
-    email: user?.email,
-    username: user?.username,
-    user_metadata: user?.user_metadata,
-    extractedEmail: userEmail,
-    hasCloudStorageConfig: hasCloudStorageConfig
-  });
-  
-  // Debug environment variables
-  console.log('[PDFUploadForm] Environment variables check:', {
-    REACT_APP_GCS_PROJECT_ID: process.env.REACT_APP_GCS_PROJECT_ID ? 'SET' : 'NOT SET',
-    REACT_APP_GCS_BUCKET_NAME: process.env.REACT_APP_GCS_BUCKET_NAME ? 'SET' : 'NOT SET',
-    hasCloudStorageConfig: hasCloudStorageConfig
-  });
+
   
   const fileInputRefs = {
     idDocument: useRef(null),
@@ -66,10 +52,68 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   // Save form data whenever it changes
   useEffect(() => {
     if (onFormDataSaved) {
-      console.log('[PDFUploadForm] Saving form data:', { formData, uploadedFiles });
       onFormDataSaved(formData, uploadedFiles);
     }
   }, [formData, uploadedFiles, onFormDataSaved]);
+
+  // Set original data when coming from DocumentsView
+  useEffect(() => {
+    if (cameFromDocumentsView && originalFormData === null && originalUploadedFiles === null) {
+      if (savedFormData && savedUploadedFiles) {
+        setOriginalFormData(JSON.parse(JSON.stringify(savedFormData)));
+        setOriginalUploadedFiles({
+          idDocument: savedUploadedFiles.idDocument,
+          selectedDocument: savedUploadedFiles.selectedDocument
+        });
+      } else {
+        setOriginalFormData(JSON.parse(JSON.stringify(formData)));
+        setOriginalUploadedFiles({
+          idDocument: uploadedFiles.idDocument,
+          selectedDocument: uploadedFiles.selectedDocument
+        });
+      }
+    }
+    // When not coming from DocumentsView, clear original data
+    if (!cameFromDocumentsView && (originalFormData !== null || originalUploadedFiles !== null)) {
+      setOriginalFormData(null);
+      setOriginalUploadedFiles(null);
+    }
+  }, [cameFromDocumentsView, savedFormData, savedUploadedFiles]); // Removed formData and uploadedFiles from dependencies
+
+  // Check for changes
+  useEffect(() => {
+    if (originalFormData && originalUploadedFiles && cameFromDocumentsView) {
+      // Compare form data more carefully
+      const formDataChanged = 
+        formData.documentType !== originalFormData.documentType ||
+        formData.mainIdRole !== originalFormData.mainIdRole ||
+        JSON.stringify(formData.additionalIds) !== JSON.stringify(originalFormData.additionalIds);
+      
+      // Compare files more carefully
+      const idDocChanged = 
+        (uploadedFiles.idDocument && !originalUploadedFiles.idDocument) ||
+        (!uploadedFiles.idDocument && originalUploadedFiles.idDocument) ||
+        (uploadedFiles.idDocument && originalUploadedFiles.idDocument && 
+         (uploadedFiles.idDocument.name !== originalUploadedFiles.idDocument.name ||
+          uploadedFiles.idDocument.size !== originalUploadedFiles.idDocument.size));
+      
+      const selectedDocChanged = 
+        (uploadedFiles.selectedDocument && !originalUploadedFiles.selectedDocument) ||
+        (!uploadedFiles.selectedDocument && originalUploadedFiles.selectedDocument) ||
+        (uploadedFiles.selectedDocument && originalUploadedFiles.selectedDocument && 
+         (uploadedFiles.selectedDocument.name !== originalUploadedFiles.selectedDocument.name ||
+          uploadedFiles.selectedDocument.size !== originalUploadedFiles.selectedDocument.size));
+      
+      const filesChanged = idDocChanged || selectedDocChanged;
+      const changed = formDataChanged || filesChanged;
+      
+      
+      
+      setHasChanges(changed);
+    } else {
+      setHasChanges(false);
+    }
+  }, [formData, uploadedFiles, originalFormData, originalUploadedFiles, cameFromDocumentsView]);
 
   // Handle form field changes
   const handleInputChange = (field, value) => {
@@ -119,11 +163,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   // Handle file selection
   const handleFileSelect = (event, fileType, index = null) => {
     const files = event.target.files;
-    console.log(`[STEP 1] Files selected for ${fileType}:`, {
-      count: files.length,
-      names: Array.from(files).map(f => f.name),
-      index: index
-    });
 
     if (fileType === 'idDocument') {
       if (files.length > 0) {
@@ -269,51 +308,38 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
 
   // Show success
   const showSuccess = (title, data = {}) => {
-    console.log('[STEP 13] Processing success response data:', data);
-    
     // Extract SessionId from the response
     let extractedSessionId = null;
     
     // Try to find SessionId in different possible locations
     if (data.SessionId) {
       extractedSessionId = data.SessionId;
-      console.log('[STEP 13.1] Found SessionId in data.SessionId:', extractedSessionId);
     } else if (data.sessionId) {
       extractedSessionId = data.sessionId;
-      console.log('[STEP 13.1] Found SessionId in data.sessionId:', extractedSessionId);
     } else if (data.session_id) {
       extractedSessionId = data.session_id;
-      console.log('[STEP 13.1] Found SessionId in data.session_id:', extractedSessionId);
     } else if (data.body && data.body.SessionId) {
       extractedSessionId = data.body.SessionId;
-      console.log('[STEP 13.1] Found SessionId in data.body.SessionId:', extractedSessionId);
     } else if (data.body && data.body.sessionId) {
       extractedSessionId = data.body.sessionId;
-      console.log('[STEP 13.1] Found SessionId in data.body.sessionId:', extractedSessionId);
     } else if (data.body && data.body.session_id) {
       extractedSessionId = data.body.session_id;
-      console.log('[STEP 13.1] Found SessionId in data.body.session_id:', extractedSessionId);
     }
     
     if (extractedSessionId) {
-      console.log('[STEP 13.2] SessionId extracted successfully:', extractedSessionId);
       setSessionId(extractedSessionId);
       
       // Call the callback function to notify parent component
       if (onSessionIdReceived) {
-        console.log('[STEP 13.3] Notifying parent component with SessionId:', extractedSessionId);
         onSessionIdReceived(extractedSessionId, data, formData, uploadedFiles);
       }
     } else {
-      console.warn('[STEP 13.2] No SessionId found in response data');
       // Create a mock SessionId for testing if none is provided
       const mockSessionId = 'mock-session-' + Date.now();
-      console.log('[STEP 13.2] Creating mock SessionId for testing:', mockSessionId);
       setSessionId(mockSessionId);
       
       // Call the callback function to notify parent component with mock SessionId
       if (onSessionIdReceived) {
-        console.log('[STEP 13.3] Notifying parent component with mock SessionId:', mockSessionId);
         onSessionIdReceived(mockSessionId, data, formData, uploadedFiles);
       }
     }
@@ -328,62 +354,48 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     setWebhookResponse(data);
   };
 
+  // Handle going back to DocumentsView
+  const handleBackToDocumentsView = () => {
+    const sessionIdToUse = currentSessionId || sessionId;
+    
+    if (onSessionIdReceived && sessionIdToUse) {
+      // When going back from DocumentsView, we don't need webhookResponse
+      // Just pass the sessionId and current form data
+      onSessionIdReceived(sessionIdToUse, null, formData, uploadedFiles);
+    } else {
+      console.error('[PDFUploadForm] Cannot go back to DocumentsView: missing sessionId or callback');
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('[STEP 5] Form submission started');
     
     // Enhanced configuration validation with detailed logging
-    console.log('[STEP 5.1] Checking webhook configuration:', {
-      hasUrl: !!webhookConfig.defaultUrl,
-      hasApiKey: !!webhookConfig.defaultApiKey,
-      url: webhookConfig.defaultUrl || 'NOT SET',
-      apiKeyLength: webhookConfig.defaultApiKey?.length || 0,
-      apiKeyPreview: webhookConfig.defaultApiKey ? `${webhookConfig.defaultApiKey.substring(0, 8)}...` : 'NOT SET'
-    });
-    
     if (!webhookConfig.defaultUrl) {
-      console.error('[ERROR] Webhook URL not configured');
-      console.error('[ERROR] Please create a .env file with REACT_APP_WEBHOOK_URL=your-make-webhook-url');
       showError('Webhook URL not configured. Please create a .env file with REACT_APP_WEBHOOK_URL=your-make-webhook-url');
       return;
     }
     
     if (!webhookConfig.defaultApiKey) {
-      console.error('[ERROR] API key not configured');
-      console.error('[ERROR] Please create a .env file with REACT_APP_WEBHOOK_API_KEY=your-make-api-key');
       showError('API key not configured. Please create a .env file with REACT_APP_WEBHOOK_API_KEY=your-make-api-key');
       return;
     }
     
     if (!uploadedFiles.idDocument) {
-      console.error('[ERROR] Missing ID document');
       showError('Please upload the main ID document.');
       return;
     }
     
     if (!formData.mainIdRole) {
-      console.error('[ERROR] Missing main ID role');
       showError('Please enter the role for the main ID document.');
       return;
     }
     
     if (!uploadedFiles.selectedDocument) {
-      console.error('[ERROR] Missing selected document');
       showError('Please upload a document for the selected type.');
       return;
     }
-    
-    console.log('[STEP 6] Form validation passed, starting upload process');
-    console.log('[STEP 6] Upload details:', {
-      webhookUrl: webhookConfig.defaultUrl,
-      apiKeyLength: webhookConfig.defaultApiKey?.length || 0,
-      idDocumentName: uploadedFiles.idDocument.name,
-      mainIdRole: formData.mainIdRole,
-      additionalIdsCount: formData.additionalIds.filter(id => id.idDocument).length,
-      selectedDocumentName: uploadedFiles.selectedDocument.name,
-      documentType: formData.documentType
-    });
     
     setIsUploading(true);
     setProgress(0);
@@ -393,12 +405,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       await uploadFiles(webhookConfig.defaultUrl);
     } catch (error) {
       console.error('[ERROR] Upload error:', error);
-      console.error('[ERROR] Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      
       showError(`Upload failed: ${error.message}`);
     } finally {
       setIsUploading(false);
@@ -407,75 +413,42 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
 
   // Upload files to Google Cloud Storage and send metadata to webhook
   const uploadFiles = async (webhookUrl) => {
-    console.log('[STEP 7] Starting file upload process');
-    console.log('[STEP 7.1] Before uploading to Google Cloud Storage - preparing files');
-    
     // Generate a consistent session ID for this upload
     const uploadSessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    console.log('[STEP 7.2] Generated upload session ID:', uploadSessionId);
     
     if (!userEmail) {
-      console.error('[ERROR] User email is required for Google Cloud Storage upload');
-      console.error('[ERROR] User object:', user);
       throw new Error('User email is required for Google Cloud Storage upload. Your account is logged in but no email address was found. Please contact support or try logging in with a different account.');
     }
     
     // Create documents array structure
-    console.log('[STEP 8] Creating documents array structure');
     
     const documents = [];
     
     // Add main ID document
-    console.log('[STEP 8.1] Adding main ID document to documents array');
     documents.push({
       file: uploadedFiles.idDocument,
-      role: formData.mainIdRole,
-      type: 'mainId'
-    });
-    console.log('[STEP 8.1] Main ID document added:', {
-      fileName: uploadedFiles.idDocument.name,
       role: formData.mainIdRole,
       type: 'mainId'
     });
     
     // Add additional ID documents
     const additionalIdsWithDocuments = formData.additionalIds.filter(id => id.idDocument);
-    console.log('[STEP 8.2] Adding additional ID documents to documents array:', additionalIdsWithDocuments.length);
     additionalIdsWithDocuments.forEach((additionalId, index) => {
       documents.push({
         file: additionalId.idDocument,
         role: additionalId.role,
         type: 'additionalId'
       });
-      console.log(`[STEP 8.2] Additional ID document ${index + 1} added:`, {
-        fileName: additionalId.idDocument.name,
-        role: additionalId.role,
-        type: 'additionalId'
-      });
     });
     
     // Add selected document
-    console.log('[STEP 8.3] Adding selected document to documents array');
     documents.push({
       file: uploadedFiles.selectedDocument,
       role: '',
       type: formData.documentType
     });
-    console.log('[STEP 8.3] Selected document added:', {
-      fileName: uploadedFiles.selectedDocument.name,
-      role: '',
-      type: formData.documentType
-    });
-    
-    console.log('[STEP 8.4] Documents array created with', documents.length, 'documents');
-    console.log('[STEP 8.4.1] Documents array structure:', documents.map(doc => ({
-      fileName: doc.file.name,
-      role: doc.role,
-      type: doc.type
-    })));
     
     // Upload files to Google Cloud Storage
-    console.log('[STEP 8.5] Starting Google Cloud Storage upload process');
     setIsCloudStorageUploading(true);
     
     // Initialize variables that will be used outside the try block
@@ -485,14 +458,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     // Check if Google Cloud Storage configuration is available
     const hasCloudStorageConfig = process.env.REACT_APP_GCS_PROJECT_ID &&
                                  process.env.REACT_APP_GCS_BUCKET_NAME;
-    
-    console.log('[STEP 8.5.1] Google Cloud Storage configuration check:', {
-      hasProjectId: !!process.env.REACT_APP_GCS_PROJECT_ID,
-      hasBucketName: !!process.env.REACT_APP_GCS_BUCKET_NAME,
-      hasCloudStorageConfig: hasCloudStorageConfig,
-      projectId: process.env.REACT_APP_GCS_PROJECT_ID ? 'SET' : 'NOT SET',
-      bucketName: process.env.REACT_APP_GCS_BUCKET_NAME ? 'SET' : 'NOT SET'
-    });
     
     if (!hasCloudStorageConfig) {
       console.warn('[STEP 8.5.2] Google Cloud Storage configuration missing, using fallback mode');
@@ -521,51 +486,33 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
         const baseFolderPath = `PDF-Uploads/${today}/${uploadSessionId}`;
         
-        console.log('[STEP 8.6] Creating organized Google Cloud Storage folder structure:', baseFolderPath);
-        
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
         const additionalIdFiles = documents.filter(doc => doc.type === 'additionalId');
         const certificateFiles = documents.filter(doc => doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption');
-        
-        console.log('[STEP 8.6.1] Files organized by type:', {
-          mainId: mainIdFiles.length,
-          additionalId: additionalIdFiles.length,
-          certificate: certificateFiles.length
-        });
         
         // Upload files to their respective folders
         const allResults = [];
         
         // Upload main ID files
         if (mainIdFiles.length > 0) {
-          console.log('[STEP 8.7.1] Uploading main ID files to main-id folder');
           const mainIdResults = await cloudStorageService.uploadMultipleFiles(mainIdFiles, userEmail, `${baseFolderPath}/main-id`);
           allResults.push(...mainIdResults.uploadResults);
         }
         
         // Upload additional ID files
         if (additionalIdFiles.length > 0) {
-          console.log('[STEP 8.7.2] Uploading additional ID files to additional-ids folder');
           const additionalIdResults = await cloudStorageService.uploadMultipleFiles(additionalIdFiles, userEmail, `${baseFolderPath}/additional-ids`);
           allResults.push(...additionalIdResults.uploadResults);
         }
         
         // Upload certificate files
         if (certificateFiles.length > 0) {
-          console.log('[STEP 8.7.3] Uploading certificate files to certificate folder');
           const certificateResults = await cloudStorageService.uploadMultipleFiles(certificateFiles, userEmail, `${baseFolderPath}/certificate`);
           allResults.push(...certificateResults.uploadResults);
         }
         
-        console.log('[STEP 8.8] Google Cloud Storage upload completed:', {
-          successful: allResults.length,
-          total: documents.length,
-          folderStructure: baseFolderPath
-        });
-        
         // Create documents array with Google Cloud Storage URLs
-        console.log('[STEP 8.9] Creating documents array with Google Cloud Storage URLs');
         documentsArray = allResults.map((result, index) => ({
           itemId: result.originalIndex,
           filename: result.fileName,
@@ -604,20 +551,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       }
     }
     
-    console.log('[STEP 8.9] Documents array created:', documentsArray.map(doc => ({
-      itemId: doc.itemId,
-      filename: doc.filename,
-      docType: doc.docType,
-      role: doc.role,
-      cloudStorageFileId: doc.cloudStorageFileId,
-      cloudStorageReadUrl: doc.cloudStorageReadUrl,
-      cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
-      bucketId: doc.bucketId,
-      projectId: doc.projectId
-    })));
-    
     // Create JSON payload for webhook
-    console.log('[STEP 9] Creating JSON payload for webhook');
     
     // Prepare the JSON payload - send as array for Make.com iterator
     const webhookPayload = [
@@ -636,83 +570,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       }
     ];
     
-    console.log('[STEP 9.1] JSON payload created:', {
-      payloadType: 'Array for Make.com iterator',
-      documentsCount: documentsArray.length,
-      documentType: formData.documentType,
-      cert_type: formData.documentType,
-      cloudStorageSessionFolder: sessionFolderName,
-      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
-      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
-      userEmail: userEmail,
-      documents: documentsArray.map((doc, index) => ({
-        itemId: doc.itemId,
-        filename: doc.filename,
-        docType: doc.docType,
-        role: doc.role,
-        cloudStorageFileId: doc.cloudStorageFileId,
-        cloudStorageReadUrl: doc.cloudStorageReadUrl,
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
-        bucketId: doc.bucketId,
-        projectId: doc.projectId
-      }))
-    });
-    
-    console.log('[STEP 9.3] Form data added:', {
-      timestamp: new Date().toISOString(),
-      totalFiles: documentsArray.length,
-      documentType: formData.documentType,
-      cert_type: formData.documentType,
-      cloudStorageSessionFolder: sessionFolderName,
-      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
-      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
-      userEmail: userEmail,
-      documents: documentsArray.map((doc, index) => ({
-        itemId: doc.itemId,
-        filename: doc.filename,
-        docType: doc.docType,
-        role: doc.role,
-        cloudStorageFileId: doc.cloudStorageFileId,
-        cloudStorageReadUrl: doc.cloudStorageReadUrl,
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
-        bucketId: doc.bucketId,
-        projectId: doc.projectId
-      }))
-    });
-    
-    // Log JSON payload for debugging
-    console.log('[STEP 9.1] JSON payload details:');
-    console.log('  documents:', webhookPayload[0].documents.length, 'items');
-    console.log('  documentType:', webhookPayload[0].documentType);
-    console.log('  cert_type:', webhookPayload[0].cert_type);
-    console.log('  totalFiles:', webhookPayload[0].totalFiles);
-    console.log('  cloudStorageSessionFolder:', webhookPayload[0].cloudStorageSessionFolder);
-    console.log('  bucketId:', webhookPayload[0].bucketId);
-    console.log('  projectId:', webhookPayload[0].projectId);
-    console.log('  userEmail:', webhookPayload[0].userEmail);
-    
-    console.log('Upload request details:', {
-      webhookUrl: webhookConfig.defaultUrl,
-      cloudStorageSessionFolder: sessionFolderName,
-      bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
-      projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
-      userEmail: userEmail,
-      documents: documentsArray.map(doc => ({
-        itemId: doc.itemId,
-        filename: doc.filename,
-        docType: doc.docType,
-        role: doc.role,
-        cloudStorageFileId: doc.cloudStorageFileId,
-        cloudStorageReadUrl: doc.cloudStorageReadUrl,
-        cloudStorageWriteUrl: doc.cloudStorageWriteUrl,
-        bucketId: doc.bucketId,
-        projectId: doc.projectId
-      })),
-      totalDocuments: documentsArray.length
-    });
-    
     // Continue with webhook upload
-    console.log('[STEP 10] Google Cloud Storage upload completed, sending metadata to webhook');
     
     // Check if we have the required data for webhook upload
     if (!webhookPayload || !webhookPayload[0] || !documentsArray.length) {
@@ -733,60 +591,19 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       setIsCloudStorageUploading(false);
     
     try {
-      console.log('[STEP 10] About to send HTTP request');
-      console.log('[STEP 10.1] Before sending request - final preparation');
-      console.log('[STEP 10] Request details:', {
-        url: webhookConfig.defaultUrl,
-        method: 'POST',
-        apiKeyHeader: 'x-make-apikey',
-        apiKeyLength: webhookConfig.defaultApiKey?.length || 0,
-        apiKeyPreview: webhookConfig.defaultApiKey ? `${webhookConfig.defaultApiKey.substring(0, 8)}...` : 'NOT SET',
-        payload: {
-          payloadType: 'Array for Make.com iterator',
-          documentsCount: webhookPayload[0].documents.length,
-          documentType: webhookPayload[0].documentType,
-          totalFiles: webhookPayload[0].totalFiles,
-          oneDriveSessionFolder: webhookPayload[0].oneDriveSessionFolder,
-          userEmail: webhookPayload[0].userEmail
-        }
-      });
-      
       // Validate API key before sending
       if (!webhookConfig.defaultApiKey) {
         throw new Error('API key is not configured. Please check your REACT_APP_WEBHOOK_API_KEY environment variable.');
       }
       
-      // Log API key details for debugging
-      console.log('[STEP 10.1] API Key validation:', {
-        exists: !!webhookConfig.defaultApiKey,
-        length: webhookConfig.defaultApiKey?.length || 0,
-        startsWith: webhookConfig.defaultApiKey?.substring(0, 4) || 'N/A',
-        endsWith: webhookConfig.defaultApiKey?.substring(-4) || 'N/A',
-        containsSpaces: webhookConfig.defaultApiKey?.includes(' ') || false,
-        containsSpecialChars: /[^a-zA-Z0-9-_]/.test(webhookConfig.defaultApiKey || '') || false
-      });
-      
       // Add timeout to the fetch request
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), webhookConfig.timeout || 30000);
       
-      console.log('[STEP 11] Request headers sent:', {
-        'Authorization': `Bearer ${webhookConfig.defaultApiKey ? webhookConfig.defaultApiKey.substring(0, 8) + '...' : 'NOT SET'}`,
-        'x-api-key': webhookConfig.defaultApiKey ? `${webhookConfig.defaultApiKey.substring(0, 8)}...` : 'NOT SET',
-        'x-make-apikey': webhookConfig.defaultApiKey ? `${webhookConfig.defaultApiKey.substring(0, 8)}...` : 'NOT SET',
-        'Content-Type': 'application/json'
-      });
-      
-      console.log('[STEP 11.1] Webhook URL:', webhookConfig.defaultUrl);
-      
       // Try with headers first, if that fails, try without headers
       let response;
-      console.log('[STEP 11] Sending HTTP request with headers');
-      console.log('[STEP 11] Webhook URL:', webhookConfig.defaultUrl);
-      console.log('[STEP 11] Payload size:', JSON.stringify(webhookPayload).length, 'characters');
       
       try {
-        console.log('[STEP 11.1] Attempting request with headers...');
         response = await fetch(webhookConfig.defaultUrl, {
           method: 'POST',
           headers: {
@@ -798,11 +615,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           body: JSON.stringify(webhookPayload),
           signal: controller.signal
         });
-        console.log('[STEP 11] HTTP request sent successfully with headers');
-        console.log('[STEP 11] Response status:', response.status);
       } catch (error) {
         console.error('[STEP 11.2] First attempt failed with error:', error.message);
-        console.log('[STEP 11.2] Trying without headers...');
         try {
           response = await fetch(webhookConfig.defaultUrl, {
             method: 'POST',
@@ -812,8 +626,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
             body: JSON.stringify(webhookPayload),
             signal: controller.signal
           });
-          console.log('[STEP 11.2] HTTP request sent successfully without headers');
-          console.log('[STEP 11.2] Response status:', response.status);
         } catch (secondError) {
           console.error('[STEP 11.2] Second attempt also failed:', secondError.message);
           throw new Error(`Webhook request failed: ${secondError.message}`);
@@ -822,43 +634,15 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       
       clearTimeout(timeoutId);
       
-      console.log('[STEP 11] HTTP request sent successfully');
-      console.log('[STEP 11.3] Response received from webhook');
-      console.log('[STEP 11] Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      // Log detailed response info for debugging
-      console.log('[STEP 11.4] Response headers details:');
-      response.headers.forEach((value, key) => {
-        console.log(`  ${key}: ${value}`);
-      });
-      
-      clearInterval(progressInterval);
-      setProgress(100);
-      
       if (response.ok) {
-        console.log('[STEP 12] Response is successful (status 200-299)');
-        console.log('[STEP 12.1] Processing successful response');
         const responseData = await response.json().catch(() => ({}));
-        
-        console.log('[STEP 12.2] Response data:', responseData);
-        console.log('[STEP 12.2.0] Response data type:', typeof responseData);
-        console.log('[STEP 12.2.0.1] Response data is array:', Array.isArray(responseData));
-        console.log('[STEP 12.2.0.2] Response data length:', responseData?.length);
         
         // Parse the response from Make.com - it comes as an array with body as JSON string
         let parsedResponse = {};
         if (responseData && Array.isArray(responseData) && responseData.length > 0) {
-          console.log('[STEP 12.2.0.3] First element of response array:', responseData[0]);
-          console.log('[STEP 12.2.0.4] Body content:', responseData[0].body);
           try {
             // Parse the body which contains the actual response data
             let bodyContent = responseData[0].body;
-            console.log('[STEP 12.2.1.0] Raw body content before parsing:', bodyContent);
             
             // Try to fix common JSON syntax errors
             // Remove extra quotes at the end of lines
@@ -868,11 +652,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
             // Remove trailing quotes before closing bracket
             bodyContent = bodyContent.replace(/"\s*"\s*]/g, '"]');
             
-            console.log('[STEP 12.2.1.0.1] Cleaned body content:', bodyContent);
-            
             parsedResponse = JSON.parse(bodyContent);
-            console.log('[STEP 12.2.1] Parsed response body:', parsedResponse);
-            console.log('[STEP 12.2.1.1] Parsed response keys:', Object.keys(parsedResponse));
           } catch (parseError) {
             console.error('[STEP 12.2.1] Failed to parse response body:', parseError);
             console.error('[STEP 12.2.1.1] Raw body content:', responseData[0].body);
@@ -880,12 +660,10 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
             
             // Try alternative parsing methods
             try {
-              console.log('[STEP 12.2.1.3] Trying to extract SessionId manually...');
               const bodyText = responseData[0].body;
               const sessionIdMatch = bodyText.match(/"SessionId":\s*"([^"]+)"/);
               if (sessionIdMatch) {
                 const extractedSessionId = sessionIdMatch[1];
-                console.log('[STEP 12.2.1.4] Manually extracted SessionId:', extractedSessionId);
                 parsedResponse = { SessionId: extractedSessionId };
               } else {
                 console.error('[STEP 12.2.1.4] Could not extract SessionId manually');
@@ -903,16 +681,10 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         
         // Extract session ID from parsed response - ONLY use the one from the webhook response
         const sessionId = parsedResponse.SessionId || parsedResponse.sessionId || parsedResponse.session_id || parsedResponse.id;
-        console.log('[STEP 12.3] Session ID extracted from response:', sessionId);
         
         if (!sessionId) {
-          console.error('[STEP 12.3] No SessionId found in webhook response!');
-          console.error('[STEP 12.3.1] Parsed response keys:', Object.keys(parsedResponse));
-          console.error('[STEP 12.3.2] Full parsed response:', parsedResponse);
           throw new Error('No SessionId received from webhook response. Cannot proceed without valid SessionId.');
         }
-        
-        console.log('[STEP 12.3.3] Using SessionId from webhook response:', sessionId);
         
         // Show success message
         showSuccess('הקבצים הועלו בהצלחה!', {
@@ -923,26 +695,15 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           parsedResponse: parsedResponse
         });
         
-        console.log('[STEP 12.4] Final session ID for this upload:', sessionId);
-        console.log('[STEP 12.4.1] Session ID source:', {
-          fromWebhook: sessionId,
-          webhookResponseKeys: Object.keys(parsedResponse),
-          finalSessionId: sessionId
-        });
-        
         // Call the callback with session ID and data
         if (onSessionIdReceived) {
-          console.log('[STEP 12.4] Calling onSessionIdReceived callback');
           onSessionIdReceived(sessionId, responseData, formData, uploadedFiles);
         }
         
         // Save form data for potential resend
         if (onFormDataSaved) {
-          console.log('[STEP 12.5] Saving form data for potential resend');
           onFormDataSaved(formData, uploadedFiles);
         }
-        
-        console.log('[STEP 13] Upload process completed successfully');
         
       } else {
         console.error('[STEP 12] Response is not successful');
@@ -1364,29 +1125,47 @@ REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp`}
           </div>
         </div>
 
-        <div className="form-actions">
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={!isFormReady || isUploading || isCloudStorageUploading}
-          >
-            {isCloudStorageUploading ? (
-              <>
-                <i className="fas fa-cloud-upload-alt fa-spin"></i>
-                מעלה ל-Google Cloud Storage...
-              </>
-            ) : isUploading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i>
-                שולח למעבד...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-paper-plane"></i>
-                שלח מסמכים
-              </>
-            )}
-          </button>
+                 <div className="form-actions">
+           {(() => {
+             const shouldShowBackButton = cameFromDocumentsView && !hasChanges;
+             const buttonText = shouldShowBackButton ? 'חזרה לעדכון פרטים' : 'שלח מסמכים';
+             
+             return (
+               <button 
+                 type={shouldShowBackButton ? "button" : "submit"}
+                 className="submit-btn" 
+                 disabled={!isFormReady || isUploading || isCloudStorageUploading}
+                 onClick={(e) => {
+                   if (shouldShowBackButton) {
+                     e.preventDefault();
+                     handleBackToDocumentsView();
+                   }
+                 }}
+               >
+                {isCloudStorageUploading ? (
+                  <>
+                    <i className="fas fa-cloud-upload-alt fa-spin"></i>
+                    מעלה ל-Google Cloud Storage...
+                  </>
+                ) : isUploading ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin"></i>
+                    שולח למעבד...
+                  </>
+                ) : shouldShowBackButton ? (
+                  <>
+                    <i className="fas fa-arrow-left"></i>
+                    חזרה לעדכון פרטים
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-paper-plane"></i>
+                    שלח מסמכים
+                  </>
+                )}
+              </button>
+            );
+          })()}
         </div>
       </form>
 

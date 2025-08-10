@@ -4,7 +4,7 @@ import { supabase } from './SubabaseClient.js';
 import './DocumentsView.css';
 
 // Test log to verify file is loaded
-console.log('[DocumentsView] FIXED FILE loaded successfully with officeAdr support');
+console.log('[DocumentsView] NEW FILE loaded successfully with officeAdr support');
 
 const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [documents, setDocuments] = useState([]);

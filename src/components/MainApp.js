@@ -10,41 +10,41 @@ const MainApp = ({ user }) => {
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [savedFormData, setSavedFormData] = useState(null); // Store form data for preservation
   const [savedUploadedFiles, setSavedUploadedFiles] = useState(null); // Store uploaded files for preservation
-
-  console.log('[MainApp] Current view:', currentView);
-  console.log('[MainApp] Current SessionId:', currentSessionId);
+  const [cameFromDocumentsView, setCameFromDocumentsView] = useState(false);
 
 
-
-  const handleSessionIdReceived = (sessionId, responseData, formData, uploadedFiles) => {
-    console.log('[MainApp] SessionId received:', sessionId);
-    console.log('[MainApp] Response data:', responseData);
-    console.log('[MainApp] Saving form data for preservation:', { formData, uploadedFiles });
-    
-    // Save form data and uploaded files for preservation
-    setSavedFormData(formData);
-    setSavedUploadedFiles(uploadedFiles);
-    
-    setCurrentSessionId(sessionId);
-    setCurrentView('documents');
-  };
+      const handleSessionIdReceived = (sessionId, responseData, formData, uploadedFiles) => {
+      // Save form data and uploaded files for preservation
+      setSavedFormData(formData);
+      setSavedUploadedFiles(uploadedFiles);
+      
+      setCurrentSessionId(sessionId);
+      
+      // If we're coming from PDFUploadForm back button (responseData is null)
+      // and we had previously come FROM DocumentsView, navigate back to documents
+      if (responseData === null && cameFromDocumentsView) {
+        setCurrentView('documents');
+        setCameFromDocumentsView(false); // Reset flag
+      } else {
+        setCurrentView('documents');
+        setCameFromDocumentsView(false); // Reset flag when going to documents view
+      }
+    };
 
   const handleBackToForm = () => {
-    console.log('[MainApp] Going back to form');
     setCurrentView('form');
     setCurrentSessionId(null);
+    setCameFromDocumentsView(false); // Reset flag when going back to form
   };
 
   const handleBackToUpload = () => {
-    console.log('[MainApp] Going back to upload with saved data');
     setCurrentView('form');
-    setCurrentSessionId(null);
+    // Don't clear currentSessionId - we need it for the back button
+    setCameFromDocumentsView(true); // Set flag when coming back from documents view
     // Don't clear saved data - it will be restored in PDFUploadForm
   };
 
   const handleDataApproved = (sessionId, documents) => {
-    console.log('[MainApp] Data approved for session:', sessionId);
-    console.log('[MainApp] Approved documents:', documents);
     
     // Here you can add logic for the next step
     // For now, we'll just show an alert
@@ -55,7 +55,7 @@ const MainApp = ({ user }) => {
   };
 
   const handleResendForm = () => {
-    console.log('[DEV] Resending form with last data:', lastFormData);
+    // console.log('[DEV] Resending form with last data:', lastFormData);
     if (lastFormData) {
       // Go back to form and trigger resend
       setCurrentView('form');
@@ -72,6 +72,8 @@ const MainApp = ({ user }) => {
           onSessionIdReceived={handleSessionIdReceived}
           savedFormData={savedFormData}
           savedUploadedFiles={savedUploadedFiles}
+          cameFromDocumentsView={cameFromDocumentsView}
+          currentSessionId={currentSessionId}
           onFormDataSaved={(formData, uploadedFiles) => {
             if (formData === null && uploadedFiles === null) {
               // Clear saved data
