@@ -104,3 +104,6 @@ env.example.complete
 env.production.example
 gcs-service-account-key.json
 test-config.js
+
+# Local Netlify folder
+.netlify
