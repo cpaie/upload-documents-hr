@@ -108,13 +108,11 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       const filesChanged = idDocChanged || selectedDocChanged;
       const changed = formDataChanged || filesChanged;
       
-      
-      
       setHasChanges(changed);
     } else {
       setHasChanges(false);
     }
-  }, [formData, uploadedFiles, originalFormData, originalUploadedFiles, cameFromDocumentsView]);
+  }, [formData, uploadedFiles, originalFormData, originalUploadedFiles, cameFromDocumentsView, formData.documentType, formData.mainIdRole, formData.additionalIds, uploadedFiles.idDocument, uploadedFiles.selectedDocument]);
 
   // Handle form field changes
   const handleInputChange = (field, value) => {
