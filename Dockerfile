@@ -7,14 +7,14 @@ WORKDIR /app
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies (use npm ci for faster, reliable builds)
-RUN npm ci --omit=dev
+# Install dependencies
+RUN npm install --only=production
 
 # Copy the server file
 COPY server-gcs.js ./
 
-# Service account key will be provided via Cloud Run environment variables
-# No need to copy the key file - Cloud Run will use workload identity
+# Copy the service account key file
+COPY gcs-service-account-key.json ./
 
 # Expose the port the app runs on
 EXPOSE 8080
