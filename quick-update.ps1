@@ -185,4 +185,4 @@ switch ($Command) {
 }
 
 Write-Host ""
-Write-Host "🎉 Quick update completed!" -ForegroundColor Green
+Write-Host "Quick update completed!" -ForegroundColor Green
