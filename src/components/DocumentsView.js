@@ -105,10 +105,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               .update({
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
-                DateOfBirth: extractedData.DateOfBirth || '',
+                DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
-                IssuedDate: extractedData.IssuedDate || '',
-                ValidUntil: extractedData.ValidUntil || '',
+                IssuedDate: extractedData.IssuedDate || null,
+                ValidUntil: extractedData.ValidUntil || null,
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               })
@@ -127,10 +127,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 SessionId: sessionId,
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
-                DateOfBirth: extractedData.DateOfBirth || '',
+                DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
-                IssuedDate: extractedData.IssuedDate || '',
-                ValidUntil: extractedData.ValidUntil || '',
+                IssuedDate: extractedData.IssuedDate || null,
+                ValidUntil: extractedData.ValidUntil || null,
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               });
@@ -153,7 +153,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
 
           // First check if record exists
           const { data: existingRecord } = await supabase
-            .from('table_certificate')
+            .from('HR_cert_id')
             .select('*')
             .eq('SessionId', sessionId)
             .single();
@@ -161,36 +161,36 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           if (existingRecord) {
             // Update existing record
             const { error } = await supabase
-              .from('table_certificate')
+              .from('HR_cert_id')
               .update({
                 CompanyNameHeb: extractedData.CompanyNameHeb || '',
                 BusinessId: extractedData.BusinessId || '',
-                IssuedDate: extractedData.IssuedDate || '',
+                IssuedDate: extractedData.IssuedDate || null,
                 officeAdr: extractedData.officeAdr || '',
                 mailAdr: extractedData.mailAdr || ''
               })
               .eq('SessionId', sessionId);
 
             if (error) {
-              console.error('[DocumentsView] Error updating certificate record:', error);
+              console.error('[DocumentsView] Error updating certificate record:', error?.message || error, error?.details || '', error);
               throw error;
             }
             console.log('[DocumentsView] Updated existing certificate record');
           } else {
             // Insert new record
             const { error } = await supabase
-              .from('table_certificate')
+              .from('HR_cert_id')
               .insert({
                 SessionId: sessionId,
                 CompanyNameHeb: extractedData.CompanyNameHeb || '',
                 BusinessId: extractedData.BusinessId || '',
-                IssuedDate: extractedData.IssuedDate || '',
+                IssuedDate: extractedData.IssuedDate || null,
                 officeAdr: extractedData.officeAdr || '',
                 mailAdr: extractedData.mailAdr || ''
               });
 
             if (error) {
-              console.error('[DocumentsView] Error inserting certificate record:', error);
+              console.error('[DocumentsView] Error inserting certificate record:', error?.message || error, error?.details || '', error);
               throw error;
             }
             console.log('[DocumentsView] Inserted new certificate record');
@@ -201,8 +201,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       console.log('[DocumentsView] Successfully saved all documents in Supabase');
       setSaving(false);
     } catch (err) {
-      console.error('[DocumentsView] Error saving to Supabase:', err);
-      setSaveError(err.message);
+      console.error('[DocumentsView] Error saving to Supabase:', err?.message || err, err?.details || '', err);
+      if (err) {
+        console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(err, null, 2));
+      }
       setSaving(false);
     }
   };
@@ -233,10 +235,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               .update({
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
-                DateOfBirth: extractedData.DateOfBirth || '',
+                DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
-                IssuedDate: extractedData.IssuedDate || '',
-                ValidUntil: extractedData.ValidUntil || '',
+                IssuedDate: extractedData.IssuedDate || null,
+                ValidUntil: extractedData.ValidUntil || null,
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               })
@@ -255,10 +257,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 SessionId: sessionId,
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
-                DateOfBirth: extractedData.DateOfBirth || '',
+                DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
-                IssuedDate: extractedData.IssuedDate || '',
-                ValidUntil: extractedData.ValidUntil || '',
+                IssuedDate: extractedData.IssuedDate || null,
+                ValidUntil: extractedData.ValidUntil || null,
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               });
@@ -274,7 +276,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           
           // First check if record exists
           const { data: existingRecord } = await supabase
-            .from('table_certificate')
+            .from('HR_cert_id')
             .select('*')
             .eq('SessionId', sessionId)
             .single();
@@ -282,11 +284,11 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           if (existingRecord) {
             // Update existing record
             const { error } = await supabase
-              .from('table_certificate')
+              .from('HR_cert_id')
               .update({
                 CompanyNameHeb: extractedData.CompanyNameHeb || '',
                 BusinessId: extractedData.BusinessId || '',
-                IssuedDate: extractedData.IssuedDate || '',
+                IssuedDate: extractedData.IssuedDate || null,
                 officeAdr: extractedData.officeAdr || '',
                 mailAdr: extractedData.mailAdr || ''
               })
@@ -300,18 +302,18 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
           } else {
             // Insert new record
             const { error } = await supabase
-              .from('table_certificate')
+              .from('HR_cert_id')
               .insert({
                 SessionId: sessionId,
                 CompanyNameHeb: extractedData.CompanyNameHeb || '',
                 BusinessId: extractedData.BusinessId || '',
-                IssuedDate: extractedData.IssuedDate || '',
+                IssuedDate: extractedData.IssuedDate || null,
                 officeAdr: extractedData.officeAdr || '',
                 mailAdr: extractedData.mailAdr || ''
               });
 
             if (error) {
-              console.error('[DocumentsView] Error inserting certificate document:', error);
+              console.error('[DocumentsView] Error inserting certificate document:', error?.message || error, error?.details || '', error);
               throw error;
             }
             console.log('[DocumentsView] Inserted new certificate record for approval');
@@ -326,7 +328,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         onDataApproved();
       }
     } catch (error) {
-      console.error('[DocumentsView] Error updating documents for approval:', error);
+      console.error('[DocumentsView] Error updating documents for approval:', error?.message || error, error?.details || '', error);
       setSaveError(error.message);
     }
   };
@@ -354,10 +356,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             .update({
               FirstName: extractedData.FirstName || '',
               LastName: extractedData.LastName || '',
-              DateOfBirth: extractedData.DateOfBirth || '',
+              DateOfBirth: extractedData.DateOfBirth || null,
               IdNumber: extractedData.IdNumber || '',
-              IssuedDate: extractedData.IssuedDate || '',
-              ValidUntil: extractedData.ValidUntil || '',
+              IssuedDate: extractedData.IssuedDate || null,
+              ValidUntil: extractedData.ValidUntil || null,
               IdType: extractedData.IdType || '',
               Role: extractedData.Role || ''
             })
@@ -365,6 +367,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
 
           if (error) {
             console.error('[DocumentsView] Error updating ID document:', error);
+            if (error) {
+              console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
+            }
             throw error;
           }
           console.log('[DocumentsView] Updated existing ID record using ID:', document.id);
@@ -376,16 +381,19 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               SessionId: sessionId,
               FirstName: extractedData.FirstName || '',
               LastName: extractedData.LastName || '',
-              DateOfBirth: extractedData.DateOfBirth || '',
+              DateOfBirth: extractedData.DateOfBirth || null,
               IdNumber: extractedData.IdNumber || '',
-              IssuedDate: extractedData.IssuedDate || '',
-              ValidUntil: extractedData.ValidUntil || '',
+              IssuedDate: extractedData.IssuedDate || null,
+              ValidUntil: extractedData.ValidUntil || null,
               IdType: extractedData.IdType || '',
               Role: extractedData.Role || ''
             });
 
           if (error) {
             console.error('[DocumentsView] Error inserting ID document:', error);
+            if (error) {
+              console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
+            }
             throw error;
           }
           console.log('[DocumentsView] Inserted new ID record');
@@ -395,7 +403,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         
         // First check if record exists
         const { data: existingRecord } = await supabase
-          .from('table_certificate')
+          .from('HR_cert_id')
           .select('*')
           .eq('SessionId', sessionId)
           .single();
@@ -403,11 +411,11 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         if (existingRecord) {
           // Update existing record
           const { error } = await supabase
-            .from('table_certificate')
+            .from('HR_cert_id')
             .update({
               CompanyNameHeb: extractedData.CompanyNameHeb || '',
               BusinessId: extractedData.BusinessId || '',
-              IssuedDate: extractedData.IssuedDate || '',
+              IssuedDate: extractedData.IssuedDate || null,
               officeAdr: extractedData.officeAdr || '',
               mailAdr: extractedData.mailAdr || ''
             })
@@ -415,31 +423,40 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
 
           if (error) {
             console.error('[DocumentsView] Error updating certificate document:', error);
+            if (error) {
+              console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
+            }
             throw error;
           }
           console.log('[DocumentsView] Updated existing certificate record using ID:', document.id);
         } else {
           // Insert new record
           const { error } = await supabase
-            .from('table_certificate')
+            .from('HR_cert_id')
             .insert({
               SessionId: sessionId,
               CompanyNameHeb: extractedData.CompanyNameHeb || '',
               BusinessId: extractedData.BusinessId || '',
-              IssuedDate: extractedData.IssuedDate || '',
+              IssuedDate: extractedData.IssuedDate || null,
               officeAdr: extractedData.officeAdr || '',
               mailAdr: extractedData.mailAdr || ''
             });
 
           if (error) {
             console.error('[DocumentsView] Error inserting certificate document:', error);
+            if (error) {
+              console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
+            }
             throw error;
           }
           console.log('[DocumentsView] Inserted new certificate record');
         }
       }
     } catch (error) {
-      console.error('[DocumentsView] Error updating single document:', error);
+      console.error('[DocumentsView] Error updating single document:', error?.message || error, error?.details || '', error);
+      if (error) {
+        console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
+      }
       setSaveError(error.message);
     }
   };
@@ -507,7 +524,14 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     };
 
     const renderField = (key, value) => {
-      if (value === null || value === undefined) return null;
+      // If the value is missing, still render an empty input in edit mode so the user can fill it
+      if (value === null || value === undefined) {
+        if (isEditing) {
+          value = '';
+        } else {
+          return null;
+        }
+      }
       
       const isHebrew = typeof value === 'string' && isHebrewText(value);
       const fieldName = key === 'CompanyNameHeb' ? 'שם החברה' :
@@ -556,7 +580,8 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     // Group fields by document type and add headers
     const renderGroupedFields = () => {
       const isIdDocument = document.type === 'ID Document' || document.type === 'mainId' || document.type === 'additionalId';
-      const isCompanyDocument = document.type === 'Company Certificate' || document.type === 'certificate';
+      const lowerType = (document.type || '').toLowerCase();
+      const isCompanyDocument = lowerType === 'company certificate' || lowerType === 'certificate' || lowerType === 'certificate document' || lowerType === 'incorporation' || lowerType === 'authorization' || lowerType === 'exemption';
       
       if (isIdDocument) {
         // ID Document fields
@@ -581,21 +606,15 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         const companyFields = ['CompanyNameHeb', 'BusinessId', 'IssuedDate', 'cert_type'];
         const addressFields = ['officeAdr', 'mailAdr'];
         
+        // Always create objects with keys present (empty string if missing)
         const companyData = {};
         const addressData = {};
         
-        // Group company fields
         companyFields.forEach(field => {
-          if (data[field] !== null && data[field] !== undefined) {
-            companyData[field] = data[field];
-          }
+          companyData[field] = data[field] !== null && data[field] !== undefined ? data[field] : '';
         });
-        
-        // Group address fields
         addressFields.forEach(field => {
-          if (data[field] !== null && data[field] !== undefined) {
-            addressData[field] = data[field];
-          }
+          addressData[field] = data[field] !== null && data[field] !== undefined ? data[field] : '';
         });
 
         return (
