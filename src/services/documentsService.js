@@ -83,7 +83,8 @@ export const documentsService = {
             extractedData: {
               CompanyNameHeb: record.CompanyNameHeb || '',
               BusinessId: record.BusinessId || '',
-              IssuedDate: record.IssuedDate || ''
+              IssuedDate: record.IssuedDate || '',
+              cert_type: record.cert_type || ''
             }
           });
         });
