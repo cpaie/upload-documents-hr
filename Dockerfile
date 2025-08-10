@@ -13,9 +13,6 @@ RUN npm ci --omit=dev
 # Copy the server file
 COPY server-gcs.js ./
 
-# Copy the service account key file
-COPY gcs-service-account-key.json ./
-
 # Expose the port the app runs on
 EXPOSE 8080
 
