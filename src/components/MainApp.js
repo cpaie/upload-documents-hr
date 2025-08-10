@@ -6,8 +6,8 @@ import DocumentsView from './DocumentsView';
 
 const MainApp = ({ user }) => {
   const [currentView, setCurrentView] = useState('form'); // 'form', 'data', or 'documents'
-  const [fetchedData, setFetchedData] = useState([]);
-  const [lastFormData, setLastFormData] = useState(null); // Store last form data for resend
+  const [fetchedData] = useState([]);
+  const [lastFormData] = useState(null); // Store last form data for resend
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [savedFormData, setSavedFormData] = useState(null); // Store form data for preservation
   const [savedUploadedFiles, setSavedUploadedFiles] = useState(null); // Store uploaded files for preservation

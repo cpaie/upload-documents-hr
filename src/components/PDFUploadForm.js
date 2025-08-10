@@ -479,7 +479,6 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     setIsCloudStorageUploading(true);
     
     // Initialize variables that will be used outside the try block
-    let uploadFormData = null;
     let documentsArray = [];
     let sessionFolderName = '';
     
@@ -976,39 +975,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     }
   };
 
-  // Reset form
-  const resetForm = () => {
-    console.log('[RESET] Resetting form to default values');
-    const defaultFormData = {
-      documentType: 'incorporation',
-      mainIdRole: '',
-      additionalIds: [{ idDocument: null, role: '' }]
-    };
-    const defaultUploadedFiles = {
-      idDocument: null,
-      selectedDocument: null
-    };
-    
-    setFormData(defaultFormData);
-    setUploadedFiles(defaultUploadedFiles);
-    setProgress(0);
-    setResult(null);
-    setWebhookResponse(null);
-    setSessionId(null);
-    
-    // Clear saved data in parent component
-    if (onFormDataSaved) {
-      onFormDataSaved(null, null);
-    }
-    
-    // Reset file inputs
-    Object.values(fileInputRefs).forEach(ref => {
-      if (ref.current) {
-        ref.current.value = '';
-      }
-    });
-    console.log('[RESET] Form reset completed');
-  };
+
 
   // Check if form is ready to submit
   const isFormReady = webhookConfig.defaultUrl && 
