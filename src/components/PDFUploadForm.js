@@ -526,7 +526,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         // Organize files by type
         const mainIdFiles = documents.filter(doc => doc.type === 'mainId');
         const additionalIdFiles = documents.filter(doc => doc.type === 'additionalId');
-        const certificateFiles = documents.filter(doc => doc.type === 'incorporation' || doc.type === 'certificate');
+        const certificateFiles = documents.filter(doc => doc.type === 'incorporation' || doc.type === 'authorization' || doc.type === 'exemption' || doc.type === 'certificate');
         
         console.log('[STEP 8.6.1] Files organized by type:', {
           mainId: mainIdFiles.length,
@@ -990,9 +990,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       case 'incorporation':
         return 'התאגדות';
       case 'authorization':
-        return 'מורשה';
+        return 'עוסק מורשה';
       case 'exemption':
-        return 'פטור';
+        return 'עוסק פטור';
       default:
         return type;
     }
