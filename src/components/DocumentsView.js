@@ -105,6 +105,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               .update({
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
+                fatherName: extractedData.fatherName || '',
                 DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
                 IssuedDate: extractedData.IssuedDate || null,
@@ -127,6 +128,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 SessionId: sessionId,
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
+                fatherName: extractedData.fatherName || '',
                 DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
                 IssuedDate: extractedData.IssuedDate || null,
@@ -235,6 +237,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               .update({
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
+                fatherName: extractedData.fatherName || '',
                 DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
                 IssuedDate: extractedData.IssuedDate || null,
@@ -257,6 +260,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 SessionId: sessionId,
                 FirstName: extractedData.FirstName || '',
                 LastName: extractedData.LastName || '',
+                fatherName: extractedData.fatherName || '',
                 DateOfBirth: extractedData.DateOfBirth || null,
                 IdNumber: extractedData.IdNumber || '',
                 IssuedDate: extractedData.IssuedDate || null,
@@ -356,6 +360,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             .update({
               FirstName: extractedData.FirstName || '',
               LastName: extractedData.LastName || '',
+              fatherName: extractedData.fatherName || '',
               DateOfBirth: extractedData.DateOfBirth || null,
               IdNumber: extractedData.IdNumber || '',
               IssuedDate: extractedData.IssuedDate || null,
@@ -381,6 +386,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               SessionId: sessionId,
               FirstName: extractedData.FirstName || '',
               LastName: extractedData.LastName || '',
+              fatherName: extractedData.fatherName || '',
               DateOfBirth: extractedData.DateOfBirth || null,
               IdNumber: extractedData.IdNumber || '',
               IssuedDate: extractedData.IssuedDate || null,
@@ -538,6 +544,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                        key === 'BusinessId' ? 'מספר עסק' :
                        key === 'IssuedDate' ? 'תאריך הנפקה' :
                        key === 'LastName' ? 'שם משפחה' :
+                       key === 'fatherName' ? 'שם האב' :
                        key === 'FirstName' ? 'שם פרטי' :
                        key === 'DateOfBirth' ? 'תאריך לידה' :
                        key === 'IdNumber' ? 'מספר תעודה' :
@@ -585,12 +592,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       
       if (isIdDocument) {
         // ID Document fields
-        const idFields = ['FirstName', 'LastName', 'DateOfBirth', 'IdNumber', 'IssuedDate', 'ValidUntil', 'IdType', 'Role'];
+        const idFields = ['FirstName', 'LastName', 'fatherName', 'DateOfBirth', 'IdNumber', 'IssuedDate', 'ValidUntil', 'IdType', 'Role'];
         const idData = {};
         idFields.forEach(field => {
-          if (data[field] !== null && data[field] !== undefined) {
-            idData[field] = data[field];
-          }
+          idData[field] = data[field] !== null && data[field] !== undefined ? data[field] : '';
         });
 
         return (

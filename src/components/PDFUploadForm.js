@@ -12,7 +12,8 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     return {
       documentType: 'incorporation', // 'incorporation', 'authorization', 'exemption'
       mainIdRole: '',
-      additionalIds: [{ idDocument: null, role: '' }]
+      fatherName: '',
+      additionalIds: [{ idDocument: null, role: '', fatherName: '' }]
     };
   });
   const [uploadedFiles, setUploadedFiles] = useState(() => {
@@ -147,7 +148,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
   const addAdditionalId = () => {
     setFormData(prev => ({
       ...prev,
-      additionalIds: [...prev.additionalIds, { idDocument: null, role: '' }]
+      additionalIds: [...prev.additionalIds, { idDocument: null, role: '', fatherName: '' }]
     }));
   };
 
@@ -427,6 +428,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
     documents.push({
       file: uploadedFiles.idDocument,
       role: formData.mainIdRole,
+      fatherName: formData.fatherName || '',
       type: 'mainId'
     });
     
@@ -436,6 +438,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       documents.push({
         file: additionalId.idDocument,
         role: additionalId.role,
+        fatherName: additionalId.fatherName || '',
         type: 'additionalId'
       });
     });
@@ -446,6 +449,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       role: '',
       type: formData.documentType
     });
+
+    // DEBUG
+    console.log('[DEBUG] documents constructed (expect fatherName on ID docs):', documents);
     
     // Upload files to Google Cloud Storage
     setIsCloudStorageUploading(true);
@@ -471,6 +477,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
         fileType: doc.file.type || 'application/pdf',
         docType: doc.type,
         role: doc.role,
+        fatherName: doc.fatherName || '',
         cloudStorageFileId: `fallback-${Date.now()}-${index}`,
         cloudStorageWebUrl: `https://example.com/fallback/${doc.file.name}`,
         cloudStorageDownloadUrl: `https://example.com/fallback/${doc.file.name}`,
@@ -511,23 +518,45 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           allResults.push(...certificateResults.uploadResults);
         }
         
-        // Create documents array with Google Cloud Storage URLs
-        documentsArray = allResults.map((result, index) => ({
-          itemId: result.originalIndex,
-          filename: result.fileName,
-          fileType: 'application/pdf',
-          docType: result.type,
-          role: result.role,
-          cloudStorageFileId: result.fileId || result.fileName,
-          cloudStorageReadUrl: result.url, // Read URL from server
-          cloudStorageWriteUrl: result.writeUrl, // Write URL from server
-          cloudStorageWebUrl: result.url, // For backward compatibility
-          cloudStorageDownloadUrl: result.url, // For backward compatibility
-          bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
-          projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
-          fileSize: result.size,
-          lastModified: result.lastModified
-        }));
+        // Build a source-documents list in the same order as allResults
+        const sourceDocsInUploadOrder = [];
+        if (mainIdFiles.length > 0) {
+          sourceDocsInUploadOrder.push(...mainIdFiles);
+        }
+        if (additionalIdFiles.length > 0) {
+          sourceDocsInUploadOrder.push(...additionalIdFiles);
+        }
+        if (certificateFiles.length > 0) {
+          sourceDocsInUploadOrder.push(...certificateFiles);
+        }
+
+        // Create documents array with Google Cloud Storage URLs and accurate metadata
+        documentsArray = allResults.map((result, index) => {
+          const byOrder = sourceDocsInUploadOrder[index];
+          const byIndex = typeof result.originalIndex === 'number' ? documents[result.originalIndex] : undefined;
+          const byName = documents.find(d => d?.file?.name === result.fileName);
+          const sourceDoc = byOrder || byIndex || byName;
+
+          const isIdDoc = sourceDoc?.type === 'mainId' || sourceDoc?.type === 'additionalId';
+
+          return {
+            itemId: result.originalIndex,
+            filename: result.fileName,
+            fileType: 'application/pdf',
+            docType: result.type,
+            role: (sourceDoc && sourceDoc.role) ? sourceDoc.role : result.role,
+            fatherName: isIdDoc ? (sourceDoc?.fatherName || '') : '',
+            cloudStorageFileId: result.fileId || result.fileName,
+            cloudStorageReadUrl: result.url, // Read URL from server
+            cloudStorageWriteUrl: result.writeUrl, // Write URL from server
+            cloudStorageWebUrl: result.url, // For backward compatibility
+            cloudStorageDownloadUrl: result.url, // For backward compatibility
+            bucketId: process.env.REACT_APP_GCS_BUCKET_NAME || 'pdf-upload-myapp',
+            projectId: process.env.REACT_APP_GCS_PROJECT_ID || 'famous-store-468216-p6',
+            fileSize: result.size,
+            lastModified: result.lastModified
+          };
+        });
         
         sessionFolderName = baseFolderPath;
       } catch (oneDriveError) {
@@ -539,6 +568,7 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
           fileType: doc.file.type || 'application/pdf',
           docType: doc.type,
           role: doc.role,
+          fatherName: doc.fatherName || '',
           oneDriveFileId: `error-${Date.now()}-${index}`,
           oneDriveWebUrl: `https://example.com/error/${doc.file.name}`,
           oneDriveDownloadUrl: `https://example.com/error/${doc.file.name}`,
@@ -590,6 +620,9 @@ const PDFUploadForm = ({ onSessionIdReceived, savedFormData, savedUploadedFiles,
       setIsCloudStorageUploading(false);
     
     try {
+      // DEBUG: Log documentsArray to verify fatherName fields
+      console.log('[DEBUG] documentsArray prepared for webhook:', documentsArray);
+      console.log('[DEBUG] webhookPayload[0].documents sample:', webhookPayload[0]?.documents?.slice(0,3));
       // Validate API key before sending
       if (!webhookConfig.defaultApiKey) {
         throw new Error('API key is not configured. Please check your REACT_APP_WEBHOOK_API_KEY environment variable.');
@@ -886,6 +919,19 @@ REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp`}
                 required
               />
             </div>
+            <div className="form-group">
+              <label className="form-label">
+                <i className="fas fa-user"></i>
+                שם האב
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                value={formData.fatherName}
+                onChange={(e) => handleInputChange('fatherName', e.target.value)}
+                placeholder="הכנס שם האב"
+              />
+            </div>
           </div>
 
           <div className="upload-section">
@@ -955,6 +1001,20 @@ REACT_APP_GCS_BUCKET_NAME=pdf-upload-myapp`}
                     value={additionalId.role}
                     onChange={(e) => handleAdditionalIdChange(index, 'role', e.target.value)}
                     placeholder="הכנס תפקיד"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <i className="fas fa-user"></i>
+                    שם האב {index + 1}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={additionalId.fatherName}
+                    onChange={(e) => handleAdditionalIdChange(index, 'fatherName', e.target.value)}
+                    placeholder="הכנס שם האב"
                   />
                 </div>
                 

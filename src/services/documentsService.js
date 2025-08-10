@@ -58,6 +58,7 @@ export const documentsService = {
             extractedData: {
               LastName: record.LastName || '',
               FirstName: record.FirstName || '',
+              fatherName: record.fatherName || record.FatherName || '',
               DateOfBirth: record.DateOfBirth || '',
               IdNumber: record.IdNumber || '',
               IssuedDate: record.IssuedDate || '',
