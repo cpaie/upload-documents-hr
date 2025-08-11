@@ -14,7 +14,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [summary, setSummary] = useState(null);
   const [isEditing] = useState(true); // Start in edit mode
   const [editableDocuments, setEditableDocuments] = useState([]);
-  const [saving, setSaving] = useState(false);
+  const [savingToSupabase, setSavingToSupabase] = useState(false);
+  const [approvingData, setApprovingData] = useState(false);
+  const [updatingDocument, setUpdatingDocument] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [saveError, setSaveError] = useState(null);
 
   const fetchDocuments = useCallback(async () => {
@@ -68,7 +71,10 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   };
 
   const handleSaveToSupabase = async () => {
-    setSaving(true);
+    if (savingToSupabase || isProcessing) return; // מניעת לחיצות חוזרות
+    
+    setSavingToSupabase(true);
+    setIsProcessing(true);
     setSaveError(null);
     
     try {
@@ -201,17 +207,24 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       }
       
       console.log('[DocumentsView] Successfully saved all documents in Supabase');
-      setSaving(false);
+      setSavingToSupabase(false);
+      setIsProcessing(false);
     } catch (err) {
       console.error('[DocumentsView] Error saving to Supabase:', err?.message || err, err?.details || '', err);
       if (err) {
         console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(err, null, 2));
       }
-      setSaving(false);
+      setSavingToSupabase(false);
+      setIsProcessing(false);
     }
   };
 
   const handleApproveData = async () => {
+    if (approvingData || isProcessing) return; // מניעת לחיצות חוזרות
+    
+    setApprovingData(true);
+    setIsProcessing(true);
+    
     console.log('[DocumentsView] Approving data and updating all documents to Supabase');
     
     try {
@@ -334,10 +347,18 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     } catch (error) {
       console.error('[DocumentsView] Error updating documents for approval:', error?.message || error, error?.details || '', error);
       setSaveError(error.message);
+    } finally {
+      setApprovingData(false);
+      setIsProcessing(false);
     }
   };
 
   const handleUpdateSingleDocument = async (document) => {
+    if (updatingDocument || isProcessing) return; // מניעת לחיצות חוזרות
+    
+    setUpdatingDocument(true);
+    setIsProcessing(true);
+    
     console.log('[DocumentsView] Updating single document:', document);
     
     try {
@@ -464,6 +485,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         console.error('[DocumentsView] Supabase error details (stringified):', JSON.stringify(error, null, 2));
       }
       setSaveError(error.message);
+    } finally {
+      setUpdatingDocument(false);
+      setIsProcessing(false);
     }
   };
 
@@ -756,9 +780,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 <button 
                   className="save-btn" 
                   onClick={handleSaveToSupabase}
-                  disabled={saving}
+                  disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
                 >
-                  {saving ? 'שומר...' : '💾 שמור'}
+                  {savingToSupabase ? '⏳ שומר...' : '💾 שמור'}
                 </button>
               </>
             )}
@@ -856,9 +880,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 <button 
                   className="approve-btn"
                   onClick={handleApproveData}
-                  disabled={saving}
+                  disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
                 >
-                  ✅ אשר נתונים
+                  {approvingData ? '⏳ מאשר...' : '✅ אשר נתונים'}
                 </button>
                 <div className="approve-note">
                   לחיצה על כפתור זה תאשר את כל הנתונים ותשמור אותם במסד הנתונים
@@ -879,9 +903,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 <button 
                   className="update-supabase-btn"
                   onClick={() => handleUpdateSingleDocument(document)}
-                  disabled={saving}
+                  disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
                 >
-                  🔄 עדכן במסד נתונים
+                  {updatingDocument ? '⏳ מעדכן...' : '🔄 עדכן במסד נתונים'}
                 </button>
               </div>
             </div>
