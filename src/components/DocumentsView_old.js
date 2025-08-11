@@ -779,7 +779,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       <div className="documents-container">
         <div className="documents-summary">
           <div className="summary-text">
-            נמצאו {documents.length} מסמך{documents.length !== 1 ? 'ים' : ''}
+            נמצאו {documents.length} מסמ{documents.length >= 1 ? 'כים' : 'ך'}
           </div>
         </div>
 

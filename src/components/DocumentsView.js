@@ -833,7 +833,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       <div className="documents-container">
         <div className="documents-summary">
           <div className="summary-text">
-            נמצאו {documents.length} מסמך{documents.length !== 1 ? 'ים' : ''}
+          נמצאו {documents.length} מסמ{documents.length >= 1 ? 'כים' : 'ך'}
           </div>
         </div>
 
@@ -882,19 +882,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 </div>
               )}
 
-              <div className="approve-section">
-                <button 
-                  className="approve-btn"
-                  onClick={handleApproveData}
-                  disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
-                >
-                  {approvingData ? '⏳ מאשר...' : '✅ אשר נתונים'}
-                </button>
-                <div className="approve-note">
-                  לחיצה על כפתור זה תאשר את כל הנתונים ותשמור אותם במסד הנתונים
-                </div>
-              </div>
-
               <div className="document-actions">
                 {document.downloadUrl && (
                   <a 
@@ -916,6 +903,22 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Single approval button for all documents */}
+      <div className="global-approve-section">
+        <div className="approve-container">
+          <button 
+            className="approve-all-btn"
+            onClick={handleApproveData}
+            disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
+          >
+            {approvingData ? '⏳ מאשר את כל הנתונים...' : '✅ אשר את כל הנתונים'}
+          </button>
+          <div className="approve-note">
+            לחיצה על כפתור זה תאשר את כל הנתונים מכל המסמכים ותשמור אותם במסד הנתונים
+          </div>
         </div>
       </div>
     </div>
