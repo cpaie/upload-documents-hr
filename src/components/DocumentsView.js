@@ -551,6 +551,23 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     }
   };
 
+  const getDocumentTypeName = (type) => {
+    switch (type) {
+      case 'ID Document':
+        return 'תעודת זהות';
+      case 'Certificate Document':
+        return 'תעודת התאגדות';
+      case 'mainId':
+        return 'תעודת זהות';
+      case 'additionalId':
+        return 'תעודת זהות נוספת';
+      case 'certificate':
+        return 'תעודה';
+      default:
+        return type || 'מסמך';
+    }
+  };
+
   const renderExtractedData = (document) => {
     const data = document.extractedData;
     if (!data) return null;
@@ -764,7 +781,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             → חזור להעלאה 
           </button>
           <div className="session-info">
-            <span className="session-label">Session ID:</span>
+            <span className="session-label">מספר בקשה:</span>
             <span className="session-id">{sessionId}</span>
           </div>
         </div>
@@ -775,7 +792,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               className={`edit-btn ${isEditing ? 'active' : ''}`}
               onClick={() => {}} // Edit mode is always active
             >
-              ✏️ עריכה
+              עריכה
             </button>
             
             {isEditing && (
@@ -788,7 +805,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                   onClick={handleSaveToSupabase}
                   disabled={savingToSupabase || approvingData || updatingDocument || isProcessing}
                 >
-                  {savingToSupabase ? '⏳ שומר...' : '💾 שמור'}
+                  {savingToSupabase ? 'שומר...' : 'שמור'}
                 </button>
               </>
             )}
@@ -798,7 +815,7 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               onClick={handleRefresh}
               disabled={loading}
             >
-              🔄 רענן
+              רענן
             </button>
           </div>
         </div>
@@ -846,11 +863,9 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 </div>
                 <div className="document-info">
                   <div className="document-title">
-                    {document.filename || 'מסמך ללא שם'}
+                    {getDocumentTypeName(document.type)}
                   </div>
-                  <div className="document-filename">
-                    {document.type || 'סוג לא ידוע'}
-                  </div>
+
                   <div className={`document-status ${getStatusClass(document.status)}`}>
                     {document.status || 'לא ידוע'}
                   </div>
