@@ -7,50 +7,41 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [isUsingSample, setIsUsingSample] = useState(false);
 
   // PDF template file name
-  const PDF_TEMPLATE_NAME = 'B7 - workers-rights_contractors-and-private-bureaus_commitment1.pdf';
+  const PDF_TEMPLATE_NAME = 'B7-workers-rights_contractors-and-private-bureaus_commitment1.pdf';
 
-  // Function to get safe text for PDF (handle Hebrew properly)
+  // Function to get safe text for PDF (preserve Hebrew)
   const getSafeTextForPDF = (text) => {
-    if (!text) return 'Name';
-    
-    // For now, transliterate Hebrew to English to avoid encoding issues
-    // In production, you would use a proper Hebrew font
-    const hebrewToEnglish = {
-      'א': 'A', 'ב': 'B', 'ג': 'G', 'ד': 'D', 'ה': 'H', 'ו': 'V', 'ז': 'Z', 'ח': 'Ch', 'ט': 'T',
-      'י': 'Y', 'כ': 'K', 'ל': 'L', 'מ': 'M', 'נ': 'N', 'ס': 'S', 'ע': 'A', 'פ': 'P', 'צ': 'Tz',
-      'ק': 'K', 'ר': 'R', 'ש': 'Sh', 'ת': 'T',
-      'ם': 'M', 'ן': 'N', 'ץ': 'Tz', 'ף': 'F', 'ץ': 'Tz'
-    };
-    
-    // Check if text contains Hebrew characters
-    const hasHebrew = /[\u0590-\u05FF]/.test(text);
-    
-    if (hasHebrew) {
-      // Transliterate Hebrew to English
-      let transliterated = '';
-      for (let char of text) {
-        if (hebrewToEnglish[char]) {
-          transliterated += hebrewToEnglish[char];
-        } else if (/[a-zA-Z0-9\s]/.test(char)) {
-          transliterated += char;
-        }
-      }
-      return transliterated.trim() || 'Name';
-    }
-    
-    // If no Hebrew, return as is
-    return text;
+    return text || 'שם';
   };
 
   // Function to create PDF with proper font handling
   const createPDFWithFont = async (pdfDoc) => {
-    // For now, don't specify font and let PDF library use default
-    return {
-      font: undefined, // Let PDF library use default font
-      supportsHebrew: false
-    };
+    try {
+      // Try to embed a Hebrew font
+      const fontUrl = 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.ttf';
+      const fontResponse = await fetch(fontUrl);
+      
+      if (fontResponse.ok) {
+        const fontBytes = await fontResponse.arrayBuffer();
+        const hebrewFont = await pdfDoc.embedFont(fontBytes);
+        console.log('Hebrew font embedded successfully');
+        return {
+          font: hebrewFont,
+          supportsHebrew: true
+        };
+      } else {
+        throw new Error('Could not load Hebrew font');
+      }
+    } catch (error) {
+      console.warn('Could not embed Hebrew font, using default:', error);
+      return {
+        font: undefined,
+        supportsHebrew: false
+      };
+    }
   };
 
   useEffect(() => {
@@ -63,13 +54,26 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
       setIsProcessing(true);
       setError(null);
       
-      // For now, always create a sample PDF since we don't have the actual template
-      // In production, you would fetch the real PDF template here
-      await createSamplePDF();
+      // Try to load the actual PDF template
+      const response = await fetch('/B7-workers-rights_contractors-and-private-bureaus_commitment1.pdf');
+      if (!response.ok) {
+        console.warn('PDF template not found, creating sample PDF instead');
+        setIsUsingSample(true);
+        await createSamplePDF();
+        return;
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      
+      // Set the PDF file - let the PDF library handle validation
+      setPdfFile(arrayBuffer);
+      setIsUsingSample(false);
       
     } catch (err) {
-      console.error('Error creating sample PDF:', err);
-      setError('Failed to create PDF template. Please try again.');
+      console.error('Error loading PDF template:', err);
+      // Fallback to creating sample PDF
+      setIsUsingSample(true);
+      await createSamplePDF();
     } finally {
       setIsProcessing(false);
     }
@@ -87,13 +91,13 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
       // Setup font and text content
       const fontConfig = await createPDFWithFont(pdfDoc);
       
-      // Define text content (using English for now)
-      const titleText = 'B7 - Workers Rights Contractors and Private Bureaus Commitment';
-      const subtitleText = 'Commitment Form for Workers Rights';
-      const firstNameLabel = 'First Name:';
-      const lastNameLabel = 'Last Name:';
-      const dateLabel = 'Date:';
-      const sampleText = 'I hereby commit to comply with all workers rights regulations...';
+      // Define text content based on font availability
+      const titleText = fontConfig.supportsHebrew ? 'B7 - התחייבות זכויות עובדים לקבלנים ולמשרדים פרטיים' : 'B7 - Workers Rights Contractors and Private Bureaus Commitment';
+      const subtitleText = fontConfig.supportsHebrew ? 'טופס התחייבות לזכויות עובדים' : 'Commitment Form for Workers Rights';
+      const firstNameLabel = fontConfig.supportsHebrew ? 'שם פרטי:' : 'First Name:';
+      const lastNameLabel = fontConfig.supportsHebrew ? 'שם משפחה:' : 'Last Name:';
+      const dateLabel = fontConfig.supportsHebrew ? 'תאריך:' : 'Date:';
+      const sampleText = fontConfig.supportsHebrew ? 'אני מתחייב/ת לעמוד בכל תקנות זכויות העובדים...' : 'I hereby commit to comply with all workers rights regulations...';
       
       // Add title
       page.drawText(titleText, {
@@ -101,6 +105,7 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
         y: height - 100,
         size: 16,
         color: rgb(0, 0, 0),
+        font: fontConfig.font,
       });
       
       // Add subtitle
@@ -109,6 +114,7 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
         y: height - 130,
         size: 12,
         color: rgb(0.4, 0.4, 0.4),
+        font: fontConfig.font,
       });
       
       // Add form fields
@@ -131,6 +137,7 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
         y: height - 190,
         size: 12,
         color: rgb(0, 0, 0),
+        font: fontConfig.font,
       });
       
       // Add more form fields for demonstration
@@ -139,6 +146,7 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
         y: height - 250,
         size: 12,
         color: rgb(0, 0, 0),
+        font: fontConfig.font,
       });
       
       const lastNameField = form.createTextField('lastName');
@@ -202,11 +210,58 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
       setIsProcessing(true);
       setError(null);
 
-      // Since we're working with a newly created PDF, we can directly use it
-      // The PDF already has the firstName field filled in from createSamplePDF
+      // Load the PDF document
+      const pdfDoc = await PDFDocument.load(pdfFile);
+      const pages = pdfDoc.getPages();
       
+      // Get font configuration for Hebrew support
+      const fontConfig = await createPDFWithFont(pdfDoc);
+      
+      // Check if we have at least 2 pages
+      if (pages.length < 2) {
+        // If it's a sample PDF (1 page), add a second page
+        const secondPage = pdfDoc.addPage([595, 842]); // A4 size
+        
+        // Add some content to the second page
+        secondPage.drawText('Second Page - Commitment Form', {
+          x: 50,
+          y: 750,
+          size: 16,
+          color: rgb(0, 0, 0),
+          font: fontConfig.font,
+        });
+        
+        secondPage.drawText('This is where the first name will be filled:', {
+          x: 50,
+          y: 720,
+          size: 12,
+          color: rgb(0, 0, 0),
+          font: fontConfig.font,
+        });
+      }
+      
+      // Get the second page (index 1)
+      const secondPage = pages[1];
+      
+      // Get the form from the PDF
+      const form = pdfDoc.getForm();
+      
+      // Create a text field for First Name on the second page
+      const firstNameField = form.createTextField('firstName');
+      const safeFirstName = getSafeTextForPDF(firstName);
+      firstNameField.setText(safeFirstName);
+      firstNameField.addToPage(secondPage, { 
+        x: 50, 
+        y: 700, 
+        width: 200, 
+        height: 20 
+      });
+
+      // Save the filled PDF
+      const pdfBytes = await pdfDoc.save();
+
       // Create download link
-      const blob = new Blob([pdfFile], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       
       // Trigger download
@@ -224,7 +279,11 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
       
     } catch (err) {
       console.error('Error filling PDF:', err);
-      setError('Failed to fill PDF. Please try again.');
+      if (err.message.includes('Failed to parse PDF')) {
+        setError('The PDF file appears to be corrupted or invalid. Please check the file.');
+      } else {
+        setError('Failed to fill PDF. Please try again.');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -270,10 +329,7 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
               <span className="detail-label">שם פרטי:</span>
               <span className="detail-value">{firstName || 'לא זמין'}</span>
             </div>
-            <div className="detail-row">
-              <span className="detail-label">שם באנגלית:</span>
-              <span className="detail-value">{getSafeTextForPDF(firstName)}</span>
-            </div>
+
             <div className="detail-row">
               <span className="detail-label">סטטוס:</span>
               <span className="detail-value">
@@ -282,7 +338,9 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
             </div>
             <div className="detail-row">
               <span className="detail-label">הערה:</span>
-              <span className="detail-value">תבנית PDF באנגלית (תמיכה בעברית תתווסף בהמשך)</span>
+              <span className="detail-value">
+                {isUsingSample ? 'תבנית PDF לדוגמה (הקובץ האמיתי לא נמצא)' : 'תבנית PDF אמיתית עם תמיכה בעברית'}
+              </span>
             </div>
           </div>
         </div>
@@ -331,8 +389,8 @@ const PDFFillingPage = ({ sessionId, firstName, onBackToDocuments }) => {
             <li>לחץ על "הורד PDF עם הנתונים" כדי להוריד את הטופס המלא</li>
             <li>הקובץ יורד אוטומטית למחשב שלך עם השם הפרטי מלא</li>
             <li>אם יש בעיה, לחץ על "נסה שוב"</li>
-            <li>הקובץ כולל תבנית התחייבות לדוגמה עם השדות הנדרשים</li>
-            <li>הערה: שמות בעברית מתורגמים לאנגלית בטופס (לדוגמה: משה → MSH)</li>
+            <li>הקובץ כולל תבנית התחייבות אמיתית עם השדות הנדרשים</li>
+            <li>הערה: השם הפרטי ימולא בעמוד השני של הטופס עם תמיכה בעברית</li>
           </ul>
         </div>
       </div>
