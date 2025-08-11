@@ -97,11 +97,12 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
             Role: extractedData.Role
           });
 
-          // First check if record exists
+          // First check if record exists with same SessionId AND IdNumber
           const { data: existingRecord } = await supabase
             .from('table_id')
             .select('*')
             .eq('SessionId', sessionId)
+            .eq('IdNumber', extractedData.IdNumber)
             .single();
 
           if (existingRecord) {
@@ -119,7 +120,8 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               })
-              .eq('SessionId', sessionId);
+              .eq('SessionId', sessionId)
+              .eq('IdNumber', extractedData.IdNumber);
 
             if (error) {
               console.error('[DocumentsView] Error updating ID record:', error);
@@ -236,11 +238,12 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
         if (document.type === 'ID Document' || document.type === 'mainId' || document.type === 'additionalId') {
           console.log('[DocumentsView] Updating ID document for approval:', document.id, 'Type:', typeof document.id);
           
-          // First check if record exists
+          // First check if record exists with same SessionId AND IdNumber
           const { data: existingRecord } = await supabase
             .from('table_id')
             .select('*')
             .eq('SessionId', sessionId)
+            .eq('IdNumber', extractedData.IdNumber)
             .single();
 
           if (existingRecord) {
@@ -258,7 +261,8 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
                 IdType: extractedData.IdType || '',
                 Role: extractedData.Role || ''
               })
-              .eq('SessionId', sessionId);
+              .eq('SessionId', sessionId)
+              .eq('IdNumber', extractedData.IdNumber);
 
             if (error) {
               console.error('[DocumentsView] Error updating ID document:', error);
@@ -367,11 +371,12 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
       if (document.type === 'ID Document' || document.type === 'mainId' || document.type === 'additionalId') {
         console.log('[DocumentsView] Updating ID document:', document.id, 'Type:', typeof document.id);
         
-        // First check if record exists
+        // First check if record exists with same SessionId AND IdNumber
         const { data: existingRecord } = await supabase
           .from('table_id')
           .select('*')
           .eq('SessionId', sessionId)
+          .eq('IdNumber', extractedData.IdNumber)
           .single();
 
         if (existingRecord) {
@@ -389,7 +394,8 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               IdType: extractedData.IdType || '',
               Role: extractedData.Role || ''
             })
-            .eq('SessionId', sessionId);
+            .eq('SessionId', sessionId)
+            .eq('IdNumber', extractedData.IdNumber);
 
           if (error) {
             console.error('[DocumentsView] Error updating ID document:', error);
