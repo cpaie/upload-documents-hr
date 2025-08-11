@@ -3,8 +3,7 @@ import { documentsService } from '../services/documentsService';
 import { supabase } from './SubabaseClient.js';
 import './DocumentsView.css';
 
-// Test log to verify file is loaded
-console.log('[DocumentsView] FIXED FILE loaded successfully with officeAdr support');
+// DocumentsView component loaded
 
 const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [documents, setDocuments] = useState([]);
@@ -21,13 +20,11 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   const [saveError, setSaveError] = useState(null);
 
   const fetchDocuments = useCallback(async () => {
-    console.log('[DocumentsView] Fetching documents for SessionId:', sessionId);
     setLoading(true);
     setError(null);
     
     try {
       const data = await documentsService.fetchDocumentsBySessionId(sessionId);
-      console.log('[DocumentsView] Documents received:', data);
       
       const documentsData = data.documents || data || [];
       setDocuments(documentsData);
@@ -44,7 +41,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
   }, [sessionId]);
 
   const handleRefresh = () => {
-    console.log('[DocumentsView] Refreshing documents');
     setRefreshCount(prev => prev + 1);
   };
 
@@ -227,16 +223,12 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
     setApprovingData(true);
     setIsProcessing(true);
     
-    console.log('[DocumentsView] Approving data and updating all documents to Supabase');
-    
     try {
       // Update each document for approval
       for (const document of editableDocuments) {
-        console.log('[DocumentsView] Updating document for approval:', document.id);
         const extractedData = document.extractedData || {};
         
         if (document.type === 'ID Document' || document.type === 'mainId' || document.type === 'additionalId') {
-          console.log('[DocumentsView] Updating ID document for approval:', document.id, 'Type:', typeof document.id);
           
           // First check if record exists with same SessionId AND IdNumber
           const { data: existingRecord } = await supabase
@@ -268,7 +260,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               console.error('[DocumentsView] Error updating ID document:', error);
               throw error;
             }
-            console.log('[DocumentsView] Updated existing ID record for approval using ID:', document.id);
           } else {
             // Insert new record
             const { error } = await supabase
@@ -290,7 +281,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               console.error('[DocumentsView] Error inserting ID document:', error);
               throw error;
             }
-            console.log('[DocumentsView] Inserted new ID record for approval');
           }
         } else if (document.type === 'Certificate Document' || document.type === 'incorporation' || document.type === 'authorization' || document.type === 'exemption' || document.type === 'Company Certificate' || document.type === 'certificate') {
           console.log('[DocumentsView] Updating certificate document for approval:', document.id);
@@ -319,7 +309,6 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               console.error('[DocumentsView] Error updating certificate document:', error);
               throw error;
             }
-            console.log('[DocumentsView] Updated existing certificate record for approval using ID:', document.id);
           } else {
             // Insert new record
             const { error } = await supabase
@@ -337,16 +326,23 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
               console.error('[DocumentsView] Error inserting certificate document:', error?.message || error, error?.details || '', error);
               throw error;
             }
-            console.log('[DocumentsView] Inserted new certificate record for approval');
           }
         }
       }
       
-      console.log('[DocumentsView] All documents updated successfully for approval');
+      // Extract firstName from documents for PDF filling
+      let firstName = null;
+      for (const document of editableDocuments) {
+        const extractedData = document.extractedData || {};
+        if (extractedData.FirstName) {
+          firstName = extractedData.FirstName;
+          break;
+        }
+      }
       
       // Call the callback to notify parent component
       if (onDataApproved) {
-        onDataApproved();
+        onDataApproved(sessionId, editableDocuments, firstName);
       }
     } catch (error) {
       console.error('[DocumentsView] Error updating documents for approval:', error?.message || error, error?.details || '', error);
@@ -941,3 +937,4 @@ const DocumentsView = ({ sessionId, onBackToUpload, onDataApproved }) => {
 };
 
 export default DocumentsView;
+

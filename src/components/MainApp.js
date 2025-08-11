@@ -2,15 +2,17 @@ import React, { useState } from 'react';
 import DataGrid from './DataGrid';
 import PDFUploadForm from './PDFUploadForm';
 import DocumentsView from './DocumentsView';
+import PDFFillingPage from './PDFFillingPage';
 
 const MainApp = ({ user }) => {
-  const [currentView, setCurrentView] = useState('form'); // 'form', 'data', or 'documents'
+  const [currentView, setCurrentView] = useState('form'); // 'form', 'data', 'documents', or 'pdf-filling'
   const [fetchedData] = useState([]);
   const [lastFormData] = useState(null); // Store last form data for resend
   const [currentSessionId, setCurrentSessionId] = useState(null);
   const [savedFormData, setSavedFormData] = useState(null); // Store form data for preservation
   const [savedUploadedFiles, setSavedUploadedFiles] = useState(null); // Store uploaded files for preservation
   const [cameFromDocumentsView, setCameFromDocumentsView] = useState(false);
+  const [firstName, setFirstName] = useState(null); // Store firstName for PDF filling
 
 
       const handleSessionIdReceived = (sessionId, responseData, formData, uploadedFiles) => {
@@ -44,14 +46,12 @@ const MainApp = ({ user }) => {
     // Don't clear saved data - it will be restored in PDFUploadForm
   };
 
-  const handleDataApproved = (sessionId, documents) => {
+  const handleDataApproved = (sessionId, documents, firstName) => {
+    // Store the firstName for PDF filling
+    setFirstName(firstName);
     
-    // Here you can add logic for the next step
-    // For now, we'll just show an alert
-    alert('הנתונים אושרו! המעבר לשלב הבא יתווסף בהמשך.');
-    
-    // You can add navigation to the next view here
-    // setCurrentView('nextStep');
+    // Navigate to PDF filling page
+    setCurrentView('pdf-filling');
   };
 
   const handleResendForm = () => {
@@ -131,6 +131,14 @@ const MainApp = ({ user }) => {
           sessionId={currentSessionId}
           onBackToUpload={handleBackToUpload}
           onDataApproved={handleDataApproved}
+        />
+      )}
+
+      {currentView === 'pdf-filling' && currentSessionId && (
+        <PDFFillingPage 
+          sessionId={currentSessionId}
+          firstName={firstName}
+          onBackToDocuments={() => setCurrentView('documents')}
         />
       )}
     </div>
